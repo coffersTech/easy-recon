@@ -35,7 +35,7 @@ jobs:
       - name: Publish to GitHub Packages
         run: |
           cd sdk/python
-          python -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+          python -m twine upload --repository-url https://pypi.pkg.github.com/coffersTech dist/*
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          TWINE_USERNAME: ${{ github.actor }}
+          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}

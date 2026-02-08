@@ -41,8 +41,8 @@ jobs:
         env:
           TWINE_USERNAME: ${{ github.actor }}
           TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          # 仓库地址
-          TWINE_REPOSITORY_URL: https://pip.pkg.github.com
+          # 仓库地址 - GitHub Packages for Python 的正确格式
+          TWINE_REPOSITORY_URL: https://npm.pkg.github.com
         run: |
           # 直接上传，不使用 --skip-existing 参数（GitHub Packages 不支持）
           python -m twine upload dist/*

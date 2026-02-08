@@ -1,0 +1,40 @@
+name: Go Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+    paths:
+      - 'sdk/go/**'
+      - '.github/workflows/go-publish.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Build
+        run: cd sdk/go && go build -v ./...
+
+      - name: Test
+        run: cd sdk/go && go test -v ./...
+
+      - name: Publish
+        run: |
+          cd sdk/go
+          GOPROXY=https://goproxy.io,direct \
+          GOSUMDB=off \
+          go mod tidy
+          go list -m github.com/coffersTech/easy-recon/sdk/go@${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

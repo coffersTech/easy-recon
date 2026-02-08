@@ -1,0 +1,30 @@
+{
+  "name": "@cofferstech/easy-recon-sdk",
+  "version": "1.0.0",
+  "description": "多商户支付对账SDK - Node.js版本",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coffersTech/easy-recon.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"Building Node.js SDK...\""
+  },
+  "keywords": [
+    "reconciliation",
+    "payment",
+    "sdk",
+    "nodejs"
+  ],
+  "author": "Ryan",
+  "license": "MIT",
+  "dependencies": {
+    "mysql2": "^3.6.5",
+    "pg": "^8.11.3",
+    "cron": "^2.4.0"
+  }
+}

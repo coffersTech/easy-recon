@@ -1,0 +1,36 @@
+name: Node.js Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+    paths:
+      - 'sdk/node.js/**'
+      - '.github/workflows/nodejs-publish.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install dependencies
+        run: cd sdk/node.js && npm install
+
+      - name: Build
+        run: cd sdk/node.js && npm run build
+
+      - name: Publish
+        run: cd sdk/node.js && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

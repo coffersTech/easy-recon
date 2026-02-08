@@ -1,6 +1,12 @@
 from setuptools import setup, find_packages
+import os
 
-with open('requirements.txt', 'r') as f:
+# 获取当前文件所在目录的绝对路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 构建 requirements.txt 文件的绝对路径
+requirements_file = os.path.join(current_dir, 'requirements.txt')
+
+with open(requirements_file, 'r') as f:
     requirements = f.read().splitlines()
 
 setup(

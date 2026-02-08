@@ -2,8 +2,8 @@ package repository
 
 import (
 	"database/sql"
-	"easy-recon-sdk/dialect"
-	"easy-recon-sdk/entity"
+	"github.com/coffersTech/easy-recon/sdk/go/dialect"
+	"github.com/coffersTech/easy-recon/sdk/go/entity"
 	"fmt"
 	"time"
 )

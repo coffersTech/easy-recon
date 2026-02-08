@@ -1,8 +1,8 @@
 package service
 
 import (
-	"easy-recon-sdk/entity"
-	"easy-recon-sdk/repository"
+	"github.com/coffersTech/easy-recon/sdk/go/entity"
+	"github.com/coffersTech/easy-recon/sdk/go/repository"
 	"fmt"
 )
 

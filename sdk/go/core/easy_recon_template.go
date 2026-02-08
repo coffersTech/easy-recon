@@ -1,8 +1,8 @@
 package core
 
 import (
-	"easy-recon-sdk/entity"
-	"easy-recon-sdk/service"
+	"github.com/coffersTech/easy-recon/sdk/go/entity"
+	"github.com/coffersTech/easy-recon/sdk/go/service"
 )
 
 // EasyReconTemplate 对账SDK核心模板类

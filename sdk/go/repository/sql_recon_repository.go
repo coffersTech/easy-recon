@@ -5,7 +5,6 @@ import (
 	"github.com/coffersTech/easy-recon/sdk/go/dialect"
 	"github.com/coffersTech/easy-recon/sdk/go/entity"
 	"fmt"
-	"time"
 )
 
 // SQLReconRepository SQL实现的对账存储库
@@ -24,12 +23,12 @@ func NewSQLReconRepository(db *sql.DB, dialect dialect.ReconDatabaseDialect) Rec
 
 // SaveOrderMain 保存对账订单主记录
 func (r *SQLReconRepository) SaveOrderMain(orderMain *entity.ReconOrderMain) (bool, error) {
-	sql := "INSERT INTO recon_order_main " +
+	sqlStmt := "INSERT INTO recon_order_main " +
 		"(order_no, merchant_id, merchant_name, order_amount, actual_amount, recon_status, " +
 		"order_time, pay_time, recon_time, create_time, update_time) " +
 		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-	_, err := r.db.Exec(sql,
+	_, err := r.db.Exec(sqlStmt,
 		orderMain.OrderNo,
 		orderMain.MerchantId,
 		orderMain.MerchantName,
@@ -61,11 +60,11 @@ func (r *SQLReconRepository) BatchSaveOrderSplitSub(splitSubs []*entity.ReconOrd
 		return false, err
 	}
 
-	sql := "INSERT INTO recon_order_split_sub " +
+	sqlStmt := "INSERT INTO recon_order_split_sub " +
 		"(order_no, sub_order_no, merchant_id, split_amount, status, create_time, update_time) " +
 		"VALUES (?, ?, ?, ?, ?, ?, ?)"
 
-	stmt, err := tx.Prepare(sql)
+	stmt, err := tx.Prepare(sqlStmt)
 	if err != nil {
 		tx.Rollback()
 		return false, err
@@ -98,12 +97,12 @@ func (r *SQLReconRepository) BatchSaveOrderSplitSub(splitSubs []*entity.ReconOrd
 
 // SaveException 保存异常记录
 func (r *SQLReconRepository) SaveException(exception *entity.ReconException) (bool, error) {
-	sql := "INSERT INTO recon_exception " +
+	sqlStmt := "INSERT INTO recon_exception " +
 		"(order_no, merchant_id, exception_type, exception_msg, exception_step, " +
 		"create_time, update_time) " +
 		"VALUES (?, ?, ?, ?, ?, ?, ?)"
 
-	_, err := r.db.Exec(sql,
+	_, err := r.db.Exec(sqlStmt,
 		exception.OrderNo,
 		exception.MerchantId,
 		exception.ExceptionType,
@@ -131,12 +130,12 @@ func (r *SQLReconRepository) BatchSaveException(exceptions []*entity.ReconExcept
 		return false, err
 	}
 
-	sql := "INSERT INTO recon_exception " +
+	sqlStmt := "INSERT INTO recon_exception " +
 		"(order_no, merchant_id, exception_type, exception_msg, exception_step, " +
 		"create_time, update_time) " +
 		"VALUES (?, ?, ?, ?, ?, ?, ?)"
 
-	stmt, err := tx.Prepare(sql)
+	stmt, err := tx.Prepare(sqlStmt)
 	if err != nil {
 		tx.Rollback()
 		return false, err
@@ -169,8 +168,8 @@ func (r *SQLReconRepository) BatchSaveException(exceptions []*entity.ReconExcept
 
 // GetOrderMainByOrderNo 根据订单号查询对账订单主记录
 func (r *SQLReconRepository) GetOrderMainByOrderNo(orderNo string) (*entity.ReconOrderMain, error) {
-	sql := "SELECT * FROM recon_order_main WHERE order_no = ?"
-	row := r.db.QueryRow(sql, orderNo)
+	sqlStmt := "SELECT * FROM recon_order_main WHERE order_no = ?"
+	row := r.db.QueryRow(sqlStmt, orderNo)
 
 	orderMain, err := r.scanOrderMain(row)
 	if err != nil {
@@ -185,8 +184,8 @@ func (r *SQLReconRepository) GetOrderMainByOrderNo(orderNo string) (*entity.Reco
 
 // GetOrderSplitSubByOrderNo 根据订单号查询分账子记录
 func (r *SQLReconRepository) GetOrderSplitSubByOrderNo(orderNo string) ([]*entity.ReconOrderSplitSub, error) {
-	sql := "SELECT * FROM recon_order_split_sub WHERE order_no = ?"
-	rows, err := r.db.Query(sql, orderNo)
+	sqlStmt := "SELECT * FROM recon_order_split_sub WHERE order_no = ?"
+	rows, err := r.db.Query(sqlStmt, orderNo)
 	if err != nil {
 		return nil, err
 	}
@@ -383,8 +382,8 @@ func (r *SQLReconRepository) GetExceptionRecords(merchantId, startDate, endDate 
 
 // GetExceptionByOrderNo 根据订单号查询对账异常记录
 func (r *SQLReconRepository) GetExceptionByOrderNo(orderNo string) (*entity.ReconException, error) {
-	sql := "SELECT * FROM recon_exception WHERE order_no = ?"
-	row := r.db.QueryRow(sql, orderNo)
+	sqlStmt := "SELECT * FROM recon_exception WHERE order_no = ?"
+	row := r.db.QueryRow(sqlStmt, orderNo)
 
 	exception, err := r.scanExceptionFromRow(row)
 	if err != nil {

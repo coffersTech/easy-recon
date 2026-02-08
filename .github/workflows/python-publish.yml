@@ -35,7 +35,7 @@ jobs:
       - name: Publish to GitHub Packages
         run: |
           cd sdk/python
-          python -m twine upload --repository-url https://pypi.pkg.github.com/coffersTech dist/*
+          python -m twine upload --repository-url https://pip.pkg.github.com dist/*
         env:
           TWINE_USERNAME: ${{ github.actor }}
           TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}

@@ -1,13 +1,10 @@
 from setuptools import setup, find_packages
-import os
 
-# 获取当前文件所在目录的绝对路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# 构建 requirements.txt 文件的绝对路径
-requirements_file = os.path.join(current_dir, 'requirements.txt')
-
-with open(requirements_file, 'r') as f:
-    requirements = f.read().splitlines()
+# 直接硬编码依赖项，避免构建过程中找不到 requirements.txt 文件的问题
+requirements = [
+    "mysql-connector-python==8.0.30",
+    "psycopg2-binary==2.9.9"
+]
 
 setup(
     name="easy-recon-sdk",

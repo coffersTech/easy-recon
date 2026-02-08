@@ -1,3 +1,4 @@
+import os
 from setuptools import setup, find_packages
 
 # 直接硬编码依赖项，避免构建过程中找不到 requirements.txt 文件的问题
@@ -8,7 +9,7 @@ requirements = [
 
 setup(
     name="easy-recon-sdk",
-    version="1.0.0",
+    version=os.getenv("SDK_VERSION", "0.0.0.dev"),
     packages=find_packages(),
     description="Easy Recon SDK for Python",
     author="Coffers Tech",

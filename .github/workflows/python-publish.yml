@@ -4,45 +4,36 @@ on:
   push:
     tags:
       - 'v*'
-    paths:
-      - 'sdk/python/**'
-      - '.github/workflows/python-publish.yml'
   workflow_dispatch:
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write  # 显式授予packages写入权限（必须）
-
-    steps:
-      - uses: actions/checkout@v4  # 升级到最新版，兼容性更好
       
-      - name: Set up Python
-        uses: actions/setup-python@v5  # 升级到最新版
-        with:
-          python-version: '3.9'
-          cache: 'pip'  # 缓存依赖，加速构建
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+        cache: 'pip'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-          # 进入python目录安装依赖（保留你的逻辑）
-          cd sdk/python && pip install -r requirements.txt || true
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+        
+    - name: Build package
+      working-directory: ./sdk/python
+      run: python -m build
 
-      - name: Build package
-        working-directory: ./sdk/python  # 直接指定工作目录，避免cd出错
-        run: python -m build  # 打包后的dist会在sdk/python/dist下
-
-      - name: Publish to GitHub Packages
-        working-directory: ./sdk/python  # 固定工作目录
-        env:
-          TWINE_USERNAME: ${{ github.actor }}
-          TWINE_PASSWORD: ${{ secrets.PY_PACKAGE_TOKEN }}
-          # 仓库地址
-          TWINE_REPOSITORY_URL: https://pip.pkg.github.com
-        run: |
-          # 直接上传，不使用 --skip-existing 参数（GitHub Packages 不支持）
-          python -m twine upload dist/*
+    - name: Publish to PyPI
+      working-directory: ./sdk/python
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PY_PACKAGE_TOKEN }}
+      run: |
+        python -m twine upload dist/*

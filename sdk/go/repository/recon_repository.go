@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"easy-recon-sdk/entity"
+	"github.com/coffersTech/easy-recon/sdk/go/entity"
 )
 
 // ReconRepository 对账存储库接口

@@ -35,13 +35,17 @@ class RealtimeReconServiceTest {
     @Mock
     private ReconSdkProperties properties;
 
+    @Mock
+    private java.util.concurrent.ExecutorService executorService;
+
     private RealtimeReconService realtimeReconService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(properties.getAmountTolerance()).thenReturn(0.01);
-        realtimeReconService = new RealtimeReconService(reconRepository, exceptionRecordService, alarmService, properties);
+        realtimeReconService = new RealtimeReconService(reconRepository, exceptionRecordService, alarmService,
+                properties, executorService);
     }
 
     @Test
@@ -62,7 +66,8 @@ class RealtimeReconServiceTest {
         when(reconRepository.batchSaveOrderSplitSub(any())).thenReturn(true);
 
         // 执行测试
-        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee, splitDetails, payStatus, notifyStatus);
+        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee,
+                splitDetails, payStatus, notifyStatus);
 
         // 验证结果
         assertTrue(result.isSuccess());
@@ -91,7 +96,8 @@ class RealtimeReconServiceTest {
         boolean notifyStatus = true;
 
         // 执行测试
-        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee, splitDetails, payStatus, notifyStatus);
+        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee,
+                splitDetails, payStatus, notifyStatus);
 
         // 验证结果
         assertFalse(result.isSuccess());
@@ -100,7 +106,8 @@ class RealtimeReconServiceTest {
         assertEquals(orderNo, result.getOrderNo());
 
         // 验证异常记录和告警被调用
-        verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId), eq("支付状态失败，对账失败"), eq(1));
+        verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId), eq("支付状态失败，对账失败"),
+                eq(1));
         verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), eq("支付状态失败，对账失败"));
     }
 
@@ -118,7 +125,8 @@ class RealtimeReconServiceTest {
         boolean notifyStatus = false; // 通知状态失败
 
         // 执行测试
-        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee, splitDetails, payStatus, notifyStatus);
+        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee,
+                splitDetails, payStatus, notifyStatus);
 
         // 验证结果
         assertFalse(result.isSuccess());
@@ -127,7 +135,8 @@ class RealtimeReconServiceTest {
         assertEquals(orderNo, result.getOrderNo());
 
         // 验证异常记录和告警被调用
-        verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId), eq("通知状态失败，对账失败"), eq(3));
+        verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId), eq("通知状态失败，对账失败"),
+                eq(3));
         verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), eq("通知状态失败，对账失败"));
     }
 
@@ -145,7 +154,8 @@ class RealtimeReconServiceTest {
         boolean notifyStatus = true;
 
         // 执行测试
-        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee, splitDetails, payStatus, notifyStatus);
+        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee,
+                splitDetails, payStatus, notifyStatus);
 
         // 验证结果
         assertFalse(result.isSuccess());
@@ -154,7 +164,8 @@ class RealtimeReconServiceTest {
         assertEquals(orderNo, result.getOrderNo());
 
         // 验证异常记录和告警被调用
-        verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId), eq("金额校验失败，实付金额与计算金额不一致"), eq(4));
+        verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId),
+                eq("金额校验失败，实付金额与计算金额不一致"), eq(4));
         verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), eq("金额校验失败，实付金额与计算金额不一致"));
     }
 
@@ -175,7 +186,8 @@ class RealtimeReconServiceTest {
         when(reconRepository.saveOrderMain(any())).thenThrow(new RuntimeException("数据库操作失败"));
 
         // 执行测试
-        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee, splitDetails, payStatus, notifyStatus);
+        ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome, payFee,
+                splitDetails, payStatus, notifyStatus);
 
         // 验证结果
         assertFalse(result.isSuccess());

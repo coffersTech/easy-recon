@@ -24,7 +24,6 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
           server-id: github
-          settings-path: ${{ github.workspace }}
 
       - name: Build with Maven
         run: mvn -B package --file sdk/spring-boot-starter/pom.xml

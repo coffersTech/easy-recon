@@ -4,6 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import tech.coffers.recon.core.EasyReconTemplate;
 import tech.coffers.recon.core.service.AlarmService;
@@ -54,8 +55,7 @@ public class ReconSdkAutoConfiguration {
                 60L,
                 java.util.concurrent.TimeUnit.SECONDS,
                 new java.util.concurrent.LinkedBlockingQueue<>(1000),
-                new ThreadPoolExecutor.CallerRunsPolicy()
-        );
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     /**
@@ -64,9 +64,6 @@ public class ReconSdkAutoConfiguration {
      * @param dataSource 数据源
      * @return 数据库方言
      */
-import org.springframework.jdbc.core.JdbcTemplate;
-
-// ... imports ...
 
     /**
      * 创建数据库方言工厂
@@ -95,7 +92,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
     /**
      * 创建对账存储库
      *
-     * @param dataSource 数据源
+     * @param dataSource     数据源
      * @param dialectFactory 数据库方言工厂
      * @return 对账存储库
      */
@@ -127,12 +124,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
      *
      * @param reconRepository 对账存储库
      * @param executorService 线程池
-     * @param alarmService 告警服务
+     * @param alarmService    告警服务
      * @return 实时对账服务
      */
     @Bean
     @ConditionalOnMissingBean(RealtimeReconService.class)
-    public RealtimeReconService realtimeReconService(ReconRepository reconRepository, ExecutorService executorService, AlarmService alarmService) {
+    public RealtimeReconService realtimeReconService(ReconRepository reconRepository, ExecutorService executorService,
+            AlarmService alarmService) {
         return new RealtimeReconService(reconRepository, executorService, alarmService);
     }
 
@@ -141,12 +139,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
      *
      * @param reconRepository 对账存储库
      * @param executorService 线程池
-     * @param alarmService 告警服务
+     * @param alarmService    告警服务
      * @return 定时对账服务
      */
     @Bean
     @ConditionalOnMissingBean(TimingReconService.class)
-    public TimingReconService timingReconService(ReconRepository reconRepository, ExecutorService executorService, AlarmService alarmService) {
+    public TimingReconService timingReconService(ReconRepository reconRepository, ExecutorService executorService,
+            AlarmService alarmService) {
         return new TimingReconService(reconRepository, executorService, alarmService);
     }
 
@@ -154,12 +153,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
      * 创建对账模板
      *
      * @param realtimeReconService 实时对账服务
-     * @param timingReconService 定时对账服务
+     * @param timingReconService   定时对账服务
      * @return 对账模板
      */
     @Bean
     @ConditionalOnMissingBean(EasyReconTemplate.class)
-    public EasyReconTemplate easyReconTemplate(RealtimeReconService realtimeReconService, TimingReconService timingReconService) {
+    public EasyReconTemplate easyReconTemplate(RealtimeReconService realtimeReconService,
+            TimingReconService timingReconService) {
         return new EasyReconTemplate(realtimeReconService, timingReconService);
     }
 

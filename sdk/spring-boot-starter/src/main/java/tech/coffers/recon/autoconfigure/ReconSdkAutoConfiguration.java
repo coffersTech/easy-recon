@@ -64,23 +64,45 @@ public class ReconSdkAutoConfiguration {
      * @param dataSource 数据源
      * @return 数据库方言
      */
+import org.springframework.jdbc.core.JdbcTemplate;
+
+// ... imports ...
+
+    /**
+     * 创建数据库方言工厂
+     *
+     * @param dataSource 数据源
+     * @return 数据库方言工厂
+     */
+    @Bean
+    @ConditionalOnMissingBean(ReconDialectFactory.class)
+    public ReconDialectFactory reconDialectFactory(DataSource dataSource) {
+        return new ReconDialectFactory(dataSource);
+    }
+
+    /**
+     * 创建数据库方言
+     *
+     * @param dialectFactory 数据库方言工厂
+     * @return 数据库方言
+     */
     @Bean
     @ConditionalOnMissingBean(ReconDatabaseDialect.class)
-    public ReconDatabaseDialect reconDatabaseDialect(DataSource dataSource) {
-        return ReconDialectFactory.createDialect(dataSource);
+    public ReconDatabaseDialect reconDatabaseDialect(ReconDialectFactory dialectFactory) {
+        return dialectFactory.getDialect();
     }
 
     /**
      * 创建对账存储库
      *
      * @param dataSource 数据源
-     * @param dialect 数据库方言
+     * @param dialectFactory 数据库方言工厂
      * @return 对账存储库
      */
     @Bean
     @ConditionalOnMissingBean(ReconRepository.class)
-    public ReconRepository reconRepository(DataSource dataSource, ReconDatabaseDialect dialect) {
-        return new JdbcReconRepository(dataSource, dialect);
+    public ReconRepository reconRepository(DataSource dataSource, ReconDialectFactory dialectFactory) {
+        return new JdbcReconRepository(new JdbcTemplate(dataSource), dialectFactory, properties);
     }
 
     /**

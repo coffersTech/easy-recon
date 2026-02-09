@@ -11,7 +11,7 @@ import tech.coffers.recon.core.service.RealtimeReconService;
 import tech.coffers.recon.core.service.TimingReconService;
 import tech.coffers.recon.dialect.ReconDatabaseDialect;
 import tech.coffers.recon.dialect.ReconDialectFactory;
-import tech.coffers.recon.repository.JdbcReconRepository;
+import tech.coffers.recon.repository.jdbc.JdbcReconRepository;
 import tech.coffers.recon.repository.ReconRepository;
 
 import javax.sql.DataSource;

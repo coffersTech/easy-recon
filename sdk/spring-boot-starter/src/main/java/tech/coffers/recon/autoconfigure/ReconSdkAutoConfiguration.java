@@ -120,21 +120,6 @@ public class ReconSdkAutoConfiguration {
     }
 
     /**
-     * 创建实时对账服务
-     *
-     * @param reconRepository 对账存储库
-     * @param executorService 线程池
-     * @param alarmService    告警服务
-     * @return 实时对账服务
-     */
-    @Bean
-    @ConditionalOnMissingBean(RealtimeReconService.class)
-    public RealtimeReconService realtimeReconService(ReconRepository reconRepository, ExecutorService executorService,
-            AlarmService alarmService) {
-        return new RealtimeReconService(reconRepository, executorService, alarmService);
-    }
-
-    /**
      * 创建定时对账服务
      *
      * @param reconRepository 对账存储库

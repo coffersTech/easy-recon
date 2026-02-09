@@ -1,6 +1,6 @@
 {
   "name": "@cofferstech/easy-recon-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "多商户支付对账SDK - Node.js版本",
   "main": "index.js",
   "repository": {

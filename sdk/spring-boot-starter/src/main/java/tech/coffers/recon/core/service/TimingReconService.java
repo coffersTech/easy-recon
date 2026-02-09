@@ -21,7 +21,8 @@ public class TimingReconService {
     private final ExecutorService executorService;
     private final AlarmService alarmService;
 
-    public TimingReconService(ReconRepository reconRepository, ExecutorService executorService, AlarmService alarmService) {
+    public TimingReconService(ReconRepository reconRepository, ExecutorService executorService,
+            AlarmService alarmService) {
         this.reconRepository = reconRepository;
         this.executorService = executorService;
         this.alarmService = alarmService;

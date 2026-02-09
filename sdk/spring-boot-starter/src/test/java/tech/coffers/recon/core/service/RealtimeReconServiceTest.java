@@ -78,7 +78,7 @@ class RealtimeReconServiceTest {
         // 验证存储库方法被调用
         verify(reconRepository, times(1)).saveOrderMain(any());
         verify(reconRepository, times(1)).batchSaveOrderSplitSub(any());
-        verify(exceptionRecordService, never()).recordReconException(any(), any(), any(), any());
+        verify(exceptionRecordService, never()).recordReconException(any(), any(), any(), anyInt());
         verify(alarmService, never()).sendReconAlarm(any(), any(), any());
     }
 

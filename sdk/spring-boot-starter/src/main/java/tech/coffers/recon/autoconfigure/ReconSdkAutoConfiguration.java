@@ -150,6 +150,37 @@ public class ReconSdkAutoConfiguration {
     }
 
     /**
+     * 创建异常记录服务
+     *
+     * @param reconRepository 对账存储库
+     * @return 异常记录服务
+     */
+    @Bean
+    @ConditionalOnMissingBean(ExceptionRecordService.class)
+    public ExceptionRecordService exceptionRecordService(ReconRepository reconRepository) {
+        return new ExceptionRecordService(reconRepository);
+    }
+
+    /**
+     * 创建实时对账服务
+     *
+     * @param reconRepository        对账存储库
+     * @param exceptionRecordService 异常记录服务
+     * @param alarmService           告警服务
+     * @param properties             配置属性
+     * @param executorService        线程池
+     * @return 实时对账服务
+     */
+    @Bean
+    @ConditionalOnMissingBean(RealtimeReconService.class)
+    public RealtimeReconService realtimeReconService(ReconRepository reconRepository,
+            ExceptionRecordService exceptionRecordService, AlarmService alarmService, ReconSdkProperties properties,
+            ExecutorService executorService) {
+        return new RealtimeReconService(reconRepository, exceptionRecordService, alarmService, properties,
+                executorService);
+    }
+
+    /**
      * 创建对账模板
      *
      * @param realtimeReconService 实时对账服务

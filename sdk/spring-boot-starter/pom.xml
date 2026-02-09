@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>tech.coffers</groupId>
-    <artifactId>easy-recon-sdk</artifactId>
+    <artifactId>easy-recon-spring-boot-starter</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
@@ -14,7 +14,7 @@
     <url>https://github.com/coffersTech/easy-recon</url>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>1.8</java.version>
         <spring-boot.version>2.7.15</spring-boot.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -44,11 +44,14 @@
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>8.0.33</version>
+            <optional>true</optional>
         </dependency>
+
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.6.0</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- Flyway for Database Migration -->
@@ -74,7 +77,34 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/*.xml</include>
+                    <include>**/*.yml</include>
+                    <include>**/*.properties</include>
+                    <include>**/*.sql</include>
+                    <include>META-INF/**</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <propertiesEncoding>UTF-8</propertiesEncoding>
+                    <delimiters>
+                        <delimiter>${*}</delimiter>
+                        <delimiter>@</delimiter>
+                    </delimiters>
+                    <useDefaultDelimiters>false</useDefaultDelimiters>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

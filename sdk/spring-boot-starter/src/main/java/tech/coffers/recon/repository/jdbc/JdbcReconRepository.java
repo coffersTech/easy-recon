@@ -34,7 +34,8 @@ public class JdbcReconRepository implements ReconRepository {
     /**
      * 构造函数
      */
-    public JdbcReconRepository(JdbcTemplate jdbcTemplate, ReconDialectFactory dialectFactory, ReconSdkProperties properties) {
+    public JdbcReconRepository(JdbcTemplate jdbcTemplate, ReconDialectFactory dialectFactory,
+            ReconSdkProperties properties) {
         this.jdbcTemplate = jdbcTemplate;
         this.dialectFactory = dialectFactory;
         this.properties = properties;
@@ -70,7 +71,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
             String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
-            return jdbcTemplate.queryForObject(sql, new Object[]{orderNo}, new OrderMainRowMapper());
+            return jdbcTemplate.queryForObject(sql, new OrderMainRowMapper(), orderNo);
         } catch (Exception e) {
             log.error("查询订单主记录失败，订单号: {}", orderNo, e);
             return null;
@@ -88,7 +89,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "order_split_sub";
             String sql = dialectFactory.getDialect().getInsertOrderSplitSubSql(tableName);
-            
+
             jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -117,7 +118,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "order_split_sub";
             String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
-            return jdbcTemplate.query(sql, new Object[]{orderNo}, new OrderSplitSubRowMapper());
+            return jdbcTemplate.query(sql, new OrderSplitSubRowMapper(), orderNo);
         } catch (Exception e) {
             log.error("查询分账子记录失败，订单号: {}", orderNo, e);
             return null;
@@ -155,7 +156,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "exception";
             String sql = dialectFactory.getDialect().getInsertExceptionSql(tableName);
-            
+
             jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -233,11 +234,12 @@ public class JdbcReconRepository implements ReconRepository {
     // ==================== 新增查询方法 ====================
 
     @Override
-    public List<ReconOrderMainDO> getOrderMainByMerchantId(String merchantId, String startDate, String endDate, Integer reconStatus, int offset, int limit) {
+    public List<ReconOrderMainDO> getOrderMainByMerchantId(String merchantId, String startDate, String endDate,
+            Integer reconStatus, int offset, int limit) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
             StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE merchant_id = ?");
-            
+
             // 添加日期条件
             if (startDate != null && !startDate.isEmpty()) {
                 sql.append(" AND DATE(create_time) >= ?");
@@ -245,15 +247,15 @@ public class JdbcReconRepository implements ReconRepository {
             if (endDate != null && !endDate.isEmpty()) {
                 sql.append(" AND DATE(create_time) <= ?");
             }
-            
+
             // 添加对账状态条件
             if (reconStatus != null) {
                 sql.append(" AND recon_status = ?");
             }
-            
+
             // 添加排序和分页
             sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
-            
+
             // 构建参数
             java.util.List<Object> params = new java.util.ArrayList<>();
             params.add(merchantId);
@@ -268,8 +270,8 @@ public class JdbcReconRepository implements ReconRepository {
             }
             params.add(limit);
             params.add(offset);
-            
-            return jdbcTemplate.query(sql.toString(), params.toArray(), new OrderMainRowMapper());
+
+            return jdbcTemplate.query(sql.toString(), new OrderMainRowMapper(), params.toArray());
         } catch (Exception e) {
             log.error("根据商户ID查询对账订单失败", e);
             return null;
@@ -281,15 +283,15 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
             StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE DATE(create_time) = ?");
-            
+
             // 添加对账状态条件
             if (reconStatus != null) {
                 sql.append(" AND recon_status = ?");
             }
-            
+
             // 添加排序和分页
             sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
-            
+
             // 构建参数
             java.util.List<Object> params = new java.util.ArrayList<>();
             params.add(dateStr);
@@ -298,8 +300,8 @@ public class JdbcReconRepository implements ReconRepository {
             }
             params.add(limit);
             params.add(offset);
-            
-            return jdbcTemplate.query(sql.toString(), params.toArray(), new OrderMainRowMapper());
+
+            return jdbcTemplate.query(sql.toString(), new OrderMainRowMapper(), params.toArray());
         } catch (Exception e) {
             log.error("根据日期查询对账订单失败，日期: {}", dateStr, e);
             return null;
@@ -307,18 +309,19 @@ public class JdbcReconRepository implements ReconRepository {
     }
 
     @Override
-    public List<ReconExceptionDO> getExceptionRecords(String merchantId, String startDate, String endDate, Integer exceptionStep, int offset, int limit) {
+    public List<ReconExceptionDO> getExceptionRecords(String merchantId, String startDate, String endDate,
+            Integer exceptionStep, int offset, int limit) {
         try {
             String tableName = properties.getTablePrefix() + "exception";
             StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName);
-            
+
             // 添加条件
             boolean hasWhere = false;
             if (merchantId != null && !merchantId.isEmpty()) {
                 sql.append(" WHERE merchant_id = ?");
                 hasWhere = true;
             }
-            
+
             if (startDate != null && !startDate.isEmpty()) {
                 if (hasWhere) {
                     sql.append(" AND");
@@ -328,7 +331,7 @@ public class JdbcReconRepository implements ReconRepository {
                 }
                 sql.append(" DATE(create_time) >= ?");
             }
-            
+
             if (endDate != null && !endDate.isEmpty()) {
                 if (hasWhere) {
                     sql.append(" AND");
@@ -338,7 +341,7 @@ public class JdbcReconRepository implements ReconRepository {
                 }
                 sql.append(" DATE(create_time) <= ?");
             }
-            
+
             if (exceptionStep != null) {
                 if (hasWhere) {
                     sql.append(" AND");
@@ -347,10 +350,10 @@ public class JdbcReconRepository implements ReconRepository {
                 }
                 sql.append(" exception_step = ?");
             }
-            
+
             // 添加排序和分页
             sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
-            
+
             // 构建参数
             java.util.List<Object> params = new java.util.ArrayList<>();
             if (merchantId != null && !merchantId.isEmpty()) {
@@ -367,8 +370,8 @@ public class JdbcReconRepository implements ReconRepository {
             }
             params.add(limit);
             params.add(offset);
-            
-            return jdbcTemplate.query(sql.toString(), params.toArray(), new ExceptionRowMapper());
+
+            return jdbcTemplate.query(sql.toString(), new ExceptionRowMapper(), params.toArray());
         } catch (Exception e) {
             log.error("查询对账异常记录失败", e);
             return null;
@@ -380,7 +383,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "exception";
             String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
-            return jdbcTemplate.queryForObject(sql, new Object[]{orderNo}, new ExceptionRowMapper());
+            return jdbcTemplate.queryForObject(sql, new ExceptionRowMapper(), orderNo);
         } catch (Exception e) {
             log.error("根据订单号查询对账异常记录失败，订单号: {}", orderNo, e);
             return null;
@@ -393,7 +396,8 @@ public class JdbcReconRepository implements ReconRepository {
     public boolean saveReconRule(ReconRuleDO reconRuleDO) {
         try {
             String tableName = properties.getTablePrefix() + "rule";
-            String sql = "INSERT INTO " + tableName + " (rule_name, rule_type, rule_expression, rule_desc, status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO " + tableName
+                    + " (rule_name, rule_type, rule_expression, rule_desc, status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
             int rows = jdbcTemplate.update(sql, ps -> {
                 ps.setString(1, reconRuleDO.getRuleName());
                 ps.setInt(2, reconRuleDO.getRuleType());
@@ -415,7 +419,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "rule";
             String sql = "SELECT * FROM " + tableName + " WHERE id = ?";
-            return jdbcTemplate.queryForObject(sql, new Object[]{id}, new ReconRuleRowMapper());
+            return jdbcTemplate.queryForObject(sql, new ReconRuleRowMapper(), id);
         } catch (Exception e) {
             log.error("根据 ID 查询对账规则失败，ID: {}", id, e);
             return null;
@@ -427,7 +431,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "rule";
             String sql = "SELECT * FROM " + tableName + " WHERE rule_name = ?";
-            return jdbcTemplate.queryForObject(sql, new Object[]{ruleName}, new ReconRuleRowMapper());
+            return jdbcTemplate.queryForObject(sql, new ReconRuleRowMapper(), ruleName);
         } catch (Exception e) {
             log.error("根据规则名称查询对账规则失败，规则名称: {}", ruleName, e);
             return null;
@@ -451,7 +455,7 @@ public class JdbcReconRepository implements ReconRepository {
         try {
             String tableName = properties.getTablePrefix() + "rule";
             String sql = "SELECT * FROM " + tableName + " ORDER BY create_time DESC LIMIT ? OFFSET ?";
-            return jdbcTemplate.query(sql, new Object[]{limit, offset}, new ReconRuleRowMapper());
+            return jdbcTemplate.query(sql, new ReconRuleRowMapper(), limit, offset);
         } catch (Exception e) {
             log.error("查询对账规则列表失败", e);
             return null;
@@ -462,7 +466,8 @@ public class JdbcReconRepository implements ReconRepository {
     public boolean updateReconRule(ReconRuleDO reconRuleDO) {
         try {
             String tableName = properties.getTablePrefix() + "rule";
-            String sql = "UPDATE " + tableName + " SET rule_name = ?, rule_type = ?, rule_expression = ?, rule_desc = ?, status = ?, update_time = ? WHERE id = ?";
+            String sql = "UPDATE " + tableName
+                    + " SET rule_name = ?, rule_type = ?, rule_expression = ?, rule_desc = ?, status = ?, update_time = ? WHERE id = ?";
             int rows = jdbcTemplate.update(sql, ps -> {
                 ps.setString(1, reconRuleDO.getRuleName());
                 ps.setInt(2, reconRuleDO.getRuleType());

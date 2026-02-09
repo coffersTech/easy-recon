@@ -1,4 +1,4 @@
-# Spring Factories
 
-# Environment Post Processors
-org.springframework.boot.env.EnvironmentPostProcessor=tech.coffers.recon.autoconfigure.ConfigDecryptProcessor
+# Auto Configuration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  tech.coffers.recon.autoconfigure.ReconSdkAutoConfiguration

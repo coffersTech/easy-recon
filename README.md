@@ -43,7 +43,7 @@ easy-recon-sdk/
 ```xml
 <dependency>
     <groupId>tech.coffers</groupId>
-    <artifactId>easy-recon-sdk</artifactId>
+    <artifactId>easy-recon-spring-boot-starter</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```

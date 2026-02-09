@@ -63,7 +63,7 @@ public class AlarmService {
         @Override
         public void sendAlarm(String message) {
             // 实现钉钉告警逻辑
-            System.out.println("[DingTalk] 发送告警: " + message);
+            System.out.println("[DingTalk] 发送告警: " + message + webhookUrl);
             // 实际实现中需要调用钉钉机器人 API
         }
     }

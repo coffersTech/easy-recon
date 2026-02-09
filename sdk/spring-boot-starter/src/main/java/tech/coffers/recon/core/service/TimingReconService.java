@@ -4,7 +4,6 @@ import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.repository.ReconRepository;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 /**
  * 定时对账服务
@@ -18,13 +17,10 @@ import java.util.concurrent.ExecutorService;
 public class TimingReconService {
 
     private final ReconRepository reconRepository;
-    private final ExecutorService executorService;
     private final AlarmService alarmService;
 
-    public TimingReconService(ReconRepository reconRepository, ExecutorService executorService,
-            AlarmService alarmService) {
+    public TimingReconService(ReconRepository reconRepository, AlarmService alarmService) {
         this.reconRepository = reconRepository;
-        this.executorService = executorService;
         this.alarmService = alarmService;
     }
 

@@ -130,9 +130,9 @@ public class ReconSdkAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(TimingReconService.class)
-    public TimingReconService timingReconService(ReconRepository reconRepository, ExecutorService executorService,
+    public TimingReconService timingReconService(ReconRepository reconRepository,
             AlarmService alarmService) {
-        return new TimingReconService(reconRepository, executorService, alarmService);
+        return new TimingReconService(reconRepository, alarmService);
     }
 
     /**

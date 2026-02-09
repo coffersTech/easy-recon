@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import tech.coffers.recon.core.EasyReconTemplate;
 import tech.coffers.recon.core.service.AlarmService;
+import tech.coffers.recon.core.service.ExceptionRecordService;
 import tech.coffers.recon.core.service.RealtimeReconService;
 import tech.coffers.recon.core.service.TimingReconService;
 import tech.coffers.recon.dialect.ReconDatabaseDialect;

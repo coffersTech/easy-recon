@@ -27,6 +27,18 @@ public class AlarmService {
     }
 
     /**
+     * 发送对账告警
+     *
+     * @param orderNo    订单号
+     * @param merchantId 商户ID
+     * @param message    告警消息
+     */
+    public void sendReconAlarm(String orderNo, String merchantId, String message) {
+        String fullMessage = String.format("【对账告警】订单号：%s，商户ID：%s，信息：%s", orderNo, merchantId, message);
+        sendAlarm(fullMessage);
+    }
+
+    /**
      * 告警策略接口
      */
     public interface AlarmStrategy {

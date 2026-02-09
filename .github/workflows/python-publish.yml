@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'python/v*'
+    paths:
+      - 'sdk/python/**'
+      - '.github/workflows/python-publish.yml'
   workflow_dispatch:
 
 jobs:

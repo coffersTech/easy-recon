@@ -3,7 +3,7 @@ name: Go Package
 on:
   push:
     tags:
-      - 'v*'
+      - 'go/v*'
     paths:
       - 'sdk/go/**'
       - '.github/workflows/go-publish.yml'

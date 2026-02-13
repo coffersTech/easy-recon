@@ -138,15 +138,79 @@ boolean doTimingRefundRecon(String dateStr);
 
 ## 使用方法
 
-注入 `EasyReconTemplate` 以使用对账服务：
+### 1. 注入 SDK 模板
+
+在您的 Service 或 Component 中注入 `EasyReconTemplate`：
 
 ```java
 @Autowired
 private EasyReconTemplate easyReconTemplate;
+```
 
-public void processRecon() {
-    // 执行实时对账
-    easyReconTemplate.getRealtimeReconService().recon(orderNo);
+### 2. 实时对账（同步）
+
+适用于需要立即获取对账结果的场景，例如在支付回调处理完成后。
+
+```java
+public void handlePaymentCallback(PaymentNotify notify) {
+    // 1. 构建主订单对象
+    ReconOrderMainDO mainDO = new ReconOrderMainDO();
+    mainDO.setOrderNo(notify.getOrderNo());
+    mainDO.setPayAmount(notify.getAmount()); // 使用 BigDecimal
+    // ... 设置其他字段
+
+    // 2. 构建分账记录（如果有）
+    List<ReconOrderSplitSubDO> splitDOs = new ArrayList<>();
+    // ...
+
+    // 3. 执行对账
+    boolean success = easyReconTemplate.doRealtimeRecon(mainDO, splitDOs);
+    
+    if (!success) {
+        log.error("订单 {} 对账失败", notify.getOrderNo());
+        // 处理失败逻辑
+    }
+}
+```
+
+### 3. 实时对账（异步）
+
+适用于对响应时间敏感的接口，将对账操作放入后台线程池执行。
+
+```java
+public void handlePaymentCallbackAsync(PaymentNotify notify) {
+    // ... 构建对象 (同上)
+
+    // 执行异步对账
+    easyReconTemplate.doRealtimeReconAsync(mainDO, splitDOs)
+        .thenAccept(result -> {
+            if (result) {
+                log.info("异步对账成功");
+            } else {
+                log.warn("异步对账失败");
+            }
+        });
+}
+```
+
+### 4. 退款对账
+
+在退款流程中使用，支持部分退款和全额退款。
+
+```java
+public void handleRefund(String orderNo, BigDecimal refundAmount) {
+    // 构建分账退款详情 (可选，Key为商户ID，Value为退款分账金额)
+    Map<String, BigDecimal> splitDetails = new HashMap<>();
+    splitDetails.put("MCH001", new BigDecimal("10.00"));
+
+    // 执行退款对账
+    boolean success = easyReconTemplate.reconRefund(
+        orderNo, 
+        refundAmount, 
+        LocalDateTime.now(), 
+        1, // 1=部分退款, 2=全额退款
+        splitDetails
+    );
 }
 ```
 

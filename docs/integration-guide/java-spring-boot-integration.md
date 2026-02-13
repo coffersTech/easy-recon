@@ -103,7 +103,6 @@ public boolean doRealtimeRecon() {
     // 创建订单主记录
     ReconOrderMainDO orderMain = new ReconOrderMainDO();
     orderMain.setOrderNo("ORDER_" + System.currentTimeMillis());
-    orderMain.setMerchantId("MERCHANT_001");
     orderMain.setMerchantName("测试商户");
     orderMain.setOrderAmount(new BigDecimal(100.00));
     orderMain.setActualAmount(new BigDecimal(100.00));

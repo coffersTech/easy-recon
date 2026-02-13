@@ -182,7 +182,7 @@ Easy Recon SDK 采用分层架构设计，各层职责明确，便于扩展和�
 |--------|----------|------|------|------|
 | id | BIGINT | 主键 | PRIMARY KEY | NOT NULL, AUTO_INCREMENT |
 | order_no | VARCHAR(64) | 订单号 | UNIQUE INDEX | NOT NULL |
-| merchant_id | VARCHAR(32) | 商户ID | INDEX | NOT NULL |
+
 | merchant_name | VARCHAR(128) | 商户名称 | | NOT NULL |
 | order_amount | DECIMAL(12,2) | 订单金额 | | NOT NULL |
 | actual_amount | DECIMAL(12,2) | 实际金额 | | NOT NULL |
@@ -253,7 +253,7 @@ Easy Recon SDK 采用分层架构设计，各层职责明确，便于扩展和�
 1. **recon_order_main**：
    - `PRIMARY KEY`：`id`
    - `UNIQUE INDEX`：`order_no`
-   - `INDEX`：`merchant_id`, `recon_status`, `order_time`
+   - `INDEX`：`recon_status`, `order_time`
 
 2. **recon_order_split_sub**：
    - `PRIMARY KEY`：`id`
@@ -356,7 +356,6 @@ public CompletableFuture<Boolean> doReconAsync() {
     // 创建订单主记录
     ReconOrderMainDO orderMain = new ReconOrderMainDO();
     orderMain.setOrderNo("ORDER_" + System.currentTimeMillis());
-    orderMain.setMerchantId("MERCHANT_001");
     orderMain.setMerchantName("测试商户");
     orderMain.setOrderAmount(new BigDecimal(100.00));
     orderMain.setActualAmount(new BigDecimal(100.00));
@@ -408,7 +407,6 @@ public boolean doRecon() {
     // 创建订单主记录
     ReconOrderMainDO orderMain = new ReconOrderMainDO();
     orderMain.setOrderNo("ORDER_" + System.currentTimeMillis());
-    orderMain.setMerchantId("MERCHANT_001");
     orderMain.setMerchantName("测试商户");
     orderMain.setOrderAmount(new BigDecimal(100.00));
     orderMain.setActualAmount(new BigDecimal(100.00));
@@ -561,7 +559,6 @@ func main() {
 	// 7. 执行实时对账
 	orderMain := &entity.ReconOrderMain{
 		OrderNo:      "ORDER_" + fmt.Sprintf("%d", time.Now().Unix()),
-		MerchantId:   "MERCHANT_001",
 		MerchantName: "测试商户",
 		OrderAmount:  100.00,
 		ActualAmount: 100.00,
@@ -696,7 +693,6 @@ async def main():
     for i in range(10):
         order = ReconOrderMain()
         order.order_no = f"ORDER_{int(time.time())}_{i}"
-        order.merchant_id = "MERCHANT_001"
         order.merchant_name = "测试商户"
         order.order_amount = 100.00
         order.actual_amount = 100.00
@@ -757,7 +753,6 @@ template = EasyReconTemplate(realtime_recon_service, timing_recon_service)
 # 7. 执行实时对账
 order_main = ReconOrderMain()
 order_main.order_no = f"ORDER_{datetime.now().timestamp()}"
-order_main.merchant_id = "MERCHANT_001"
 order_main.merchant_name = "测试商户"
 order_main.order_amount = 100.00
 order_main.actual_amount = 100.00

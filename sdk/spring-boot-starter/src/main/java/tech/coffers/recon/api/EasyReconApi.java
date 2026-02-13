@@ -166,26 +166,6 @@ public class EasyReconApi {
     }
 
     /**
-     * 分页查询商户对账订单
-     *
-     * @param merchantId  商户ID
-     * @param startDate   开始日期 (yyyy-MM-dd)
-     * @param endDate     结束日期 (yyyy-MM-dd)
-     * @param reconStatus 对账状态
-     * @param page        页码 (1-based)
-     * @param size        每页大小
-     * @return 分页结果
-     */
-    public PageResult<ReconOrderMainDO> listOrdersByMerchant(String merchantId, String startDate, String endDate,
-            Integer reconStatus, int page, int size) {
-        int offset = (page - 1) * size;
-        List<ReconOrderMainDO> list = reconRepository.getOrderMainByMerchantId(merchantId, startDate, endDate,
-                reconStatus, offset, size);
-        long total = reconRepository.countOrderMainByMerchantId(merchantId, startDate, endDate, reconStatus);
-        return PageResult.of(list, total, page, size);
-    }
-
-    /**
      * 分页查询日期对账订单
      *
      * @param dateStr     日期 (yyyy-MM-dd)

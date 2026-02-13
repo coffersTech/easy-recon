@@ -29,8 +29,8 @@ public class RealtimeReconService {
     private final ReconRepository reconRepository;
     private final ExceptionRecordService exceptionRecordService;
     private final AlarmService alarmService;
-    private final ReconSdkProperties properties; // Kept for reconOrder
-    private final ExecutorService executorService; // Added back for async
+    private final ReconSdkProperties properties;
+    private final ExecutorService executorService;
 
     public RealtimeReconService(ReconRepository reconRepository, ExceptionRecordService exceptionRecordService,
             AlarmService alarmService, ReconSdkProperties properties, ExecutorService executorService) {
@@ -56,26 +56,26 @@ public class RealtimeReconService {
      * @return 对账结果
      */
     @Transactional(rollbackFor = Exception.class)
-    public ReconResult reconOrder(String orderNo, String merchantId, BigDecimal payAmount, BigDecimal platformIncome,
+    public ReconResult reconOrder(String orderNo, BigDecimal payAmount, BigDecimal platformIncome,
             BigDecimal payFee, Map<String, BigDecimal> splitDetails, boolean payStatus, boolean splitStatus,
             boolean notifyStatus) {
         // ... (Same implementation as before)
         try {
             // 1. 校验支付状态
             if (!payStatus) {
-                recordException(orderNo, merchantId, "支付状态失败，对账失败", 1);
+                recordException(orderNo, "SELF", "支付状态失败，对账失败", 1);
                 return ReconResult.fail(orderNo, "支付状态失败，对账失败");
             }
 
             // 2. 校验分账状态
             if (!splitStatus) {
-                recordException(orderNo, merchantId, "分账状态失败，对账失败", 2);
+                recordException(orderNo, "SELF", "分账状态失败，对账失败", 2);
                 return ReconResult.fail(orderNo, "分账状态失败，对账失败");
             }
 
             // 3. 校验通知状态
             if (!notifyStatus) {
-                recordException(orderNo, merchantId, "通知状态失败，对账失败", 3);
+                recordException(orderNo, "SELF", "通知状态失败，对账失败", 3);
                 return ReconResult.fail(orderNo, "通知状态失败，对账失败");
             }
 
@@ -89,14 +89,13 @@ public class RealtimeReconService {
             BigDecimal calcAmount = splitTotal.add(platformIncome).add(payFee);
             // 容差值比较，使用 BigDecimal 的 subtract 和 abs
             if (payAmount.subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
-                recordException(orderNo, merchantId, "金额校验失败，实付金额与计算金额不一致", 4);
+                recordException(orderNo, "SELF", "金额校验失败，实付金额与计算金额不一致", 4);
                 return ReconResult.fail(orderNo, "金额校验失败，实付金额与计算金额不一致");
             }
 
             // 4. 保存订单主记录
             ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
             orderMainDO.setOrderNo(orderNo);
-            orderMainDO.setMerchantId(merchantId);
             orderMainDO.setPayAmount(payAmount);
             orderMainDO.setPlatformIncome(platformIncome);
             orderMainDO.setPayFee(payFee);
@@ -125,7 +124,7 @@ public class RealtimeReconService {
 
         } catch (Exception e) {
             log.error("对账处理异常", e);
-            recordException(orderNo, merchantId, "对账处理异常: " + e.getMessage(), 5);
+            recordException(orderNo, "SELF", "对账处理异常: " + e.getMessage(), 5);
             return ReconResult.fail(orderNo, "对账处理异常: " + e.getMessage());
         }
     }
@@ -148,7 +147,7 @@ public class RealtimeReconService {
             reconRepository.updateReconStatus(orderMainDO.getOrderNo(), 1);
             return true;
         } catch (Exception e) {
-            alarmService.sendReconAlarm(orderMainDO.getOrderNo(), orderMainDO.getMerchantId(),
+            alarmService.sendReconAlarm(orderMainDO.getOrderNo(), "SELF",
                     "实时对账失败: " + e.getMessage());
             return false;
         }
@@ -181,7 +180,7 @@ public class RealtimeReconService {
 
             // 2. 校验退款金额 (退款金额 <= 实付金额)
             if (refundAmount.compareTo(orderMainDO.getPayAmount()) > 0) {
-                recordException(orderNo, orderMainDO.getMerchantId(), "退款金额大于实付金额", 4);
+                recordException(orderNo, "SELF", "退款金额大于实付金额", 4);
                 return ReconResult.fail(orderNo, "退款金额大于实付金额");
             }
 
@@ -196,7 +195,7 @@ public class RealtimeReconService {
             // 这里假设退款分账总额必须等于退款金额（排除平台退款部分？）
             // 简单校验：退款分账总额 <= 退款金额
             if (splitTotal.compareTo(refundAmount) > 0) {
-                recordException(orderNo, orderMainDO.getMerchantId(), "退款分账总额大于退款金额", 4);
+                recordException(orderNo, "SELF", "退款分账总额大于退款金额", 4);
                 return ReconResult.fail(orderNo, "退款分账总额大于退款金额");
             }
 
@@ -226,7 +225,7 @@ public class RealtimeReconService {
 
         } catch (Exception e) {
             log.error("退款对账处理异常", e);
-            recordException(orderNo, "UNKNOWN", "退款对账处理异常: " + e.getMessage(), 5);
+            recordException(orderNo, "SELF", "退款对账处理异常: " + e.getMessage(), 5);
             return ReconResult.fail(orderNo, "退款对账处理异常: " + e.getMessage());
         }
     }
@@ -260,7 +259,7 @@ public class RealtimeReconService {
             // 1. 查询订单主记录
             ReconOrderMainDO orderMainDO = reconRepository.getOrderMainByOrderNo(orderNo);
             if (orderMainDO == null) {
-                recordException(orderNo, "UNKNOWN", "重试对账失败：订单不存在", 0);
+                recordException(orderNo, "SELF", "重试对账失败：订单不存在", 0);
                 return false;
             }
 
@@ -284,7 +283,7 @@ public class RealtimeReconService {
             BigDecimal calcAmount = splitTotal.add(orderMainDO.getPlatformIncome()).add(orderMainDO.getPayFee());
 
             if (orderMainDO.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
-                recordException(orderNo, orderMainDO.getMerchantId(), "重试对账失败：金额校验不一致", 4);
+                recordException(orderNo, "SELF", "重试对账失败：金额校验不一致", 4);
                 reconRepository.updateReconStatus(orderNo, 2); // 保持/更新为失败
                 return false;
             }
@@ -294,7 +293,7 @@ public class RealtimeReconService {
 
         } catch (Exception e) {
             log.error("重试对账异常", e);
-            recordException(orderNo, "UNKNOWN", "重试对账异常: " + e.getMessage(), 5);
+            recordException(orderNo, "SELF", "重试对账异常: " + e.getMessage(), 5);
             return false;
         }
     }

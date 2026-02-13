@@ -91,7 +91,7 @@ public class TimingReconService {
 
             if (order.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
                 // 金额校验失败
-                recordException(order.getOrderNo(), order.getMerchantId(), "定时对账失败：金额校验不一致", 4);
+                recordException(order.getOrderNo(), "SELF", "定时对账失败：金额校验不一致", 4);
                 reconRepository.updateReconStatus(order.getOrderNo(), 2); // 2: 失败
                 return;
             }
@@ -100,7 +100,7 @@ public class TimingReconService {
             reconRepository.updateReconStatus(order.getOrderNo(), 1); // 1: 已对账
 
         } catch (Exception e) {
-            recordException(order.getOrderNo(), order.getMerchantId(), "定时对账异常: " + e.getMessage(), 5);
+            recordException(order.getOrderNo(), "SELF", "定时对账异常: " + e.getMessage(), 5);
         }
     }
 

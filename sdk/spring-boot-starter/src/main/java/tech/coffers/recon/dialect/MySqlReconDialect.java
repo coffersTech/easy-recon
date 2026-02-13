@@ -14,7 +14,7 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderMainSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, merchant_id, pay_amount, pay_amount_fen, platform_income, platform_income_fen, pay_fee, pay_fee_fen, split_total_amount, split_total_amount_fen, recon_status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + " (order_no, pay_amount, pay_amount_fen, platform_income, platform_income_fen, pay_fee, pay_fee_fen, split_total_amount, split_total_amount_fen, recon_status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     @Override

@@ -103,20 +103,6 @@ public interface ReconRepository {
         // ==================== 查询方法 ====================
 
         /**
-         * 根据商户ID查询对账订单主记录（分页）
-         *
-         * @param merchantId  商户ID
-         * @param startDate   开始日期（yyyy-MM-dd）
-         * @param endDate     结束日期（yyyy-MM-dd）
-         * @param reconStatus 对账状态（null 表示全部）
-         * @param offset      偏移量
-         * @param limit       限制数量
-         * @return 对账订单主记录列表
-         */
-        List<ReconOrderMainDO> getOrderMainByMerchantId(String merchantId, String startDate, String endDate,
-                        Integer reconStatus, int offset, int limit);
-
-        /**
          * 根据日期查询对账订单主记录（分页）
          *
          * @param dateStr     日期（yyyy-MM-dd）
@@ -246,17 +232,6 @@ public interface ReconRepository {
          * @return 对账统计数据
          */
         ReconSummaryDO getReconSummary(String dateStr);
-
-        /**
-         * 根据商户ID统计对账订单数量
-         *
-         * @param merchantId  商户ID
-         * @param startDate   开始日期
-         * @param endDate     结束日期
-         * @param reconStatus 对账状态
-         * @return 订单数量
-         */
-        long countOrderMainByMerchantId(String merchantId, String startDate, String endDate, Integer reconStatus);
 
         /**
          * 根据日期统计对账订单数量

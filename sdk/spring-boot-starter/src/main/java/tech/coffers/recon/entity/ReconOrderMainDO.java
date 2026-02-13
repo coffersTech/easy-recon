@@ -28,11 +28,6 @@ public class ReconOrderMainDO {
     private String orderNo;
 
     /**
-     * 商户ID
-     */
-    private String merchantId;
-
-    /**
      * 实付金额
      */
     private BigDecimal payAmount;
@@ -107,12 +102,19 @@ public class ReconOrderMainDO {
      */
     private LocalDateTime refundTime;
 
+    // ==================== 自动转换逻辑 ====================
+
     public void setPayAmount(BigDecimal payAmount) {
         this.payAmount = payAmount;
         if (payAmount != null) {
             this.payAmountFen = payAmount.multiply(new BigDecimal("100")).longValue();
-        } else {
-            this.payAmountFen = null;
+        }
+    }
+
+    public void setPayAmountFen(Long payAmountFen) {
+        this.payAmountFen = payAmountFen;
+        if (payAmountFen != null) {
+            this.payAmount = new BigDecimal(payAmountFen).divide(new BigDecimal("100"));
         }
     }
 
@@ -120,8 +122,13 @@ public class ReconOrderMainDO {
         this.platformIncome = platformIncome;
         if (platformIncome != null) {
             this.platformIncomeFen = platformIncome.multiply(new BigDecimal("100")).longValue();
-        } else {
-            this.platformIncomeFen = null;
+        }
+    }
+
+    public void setPlatformIncomeFen(Long platformIncomeFen) {
+        this.platformIncomeFen = platformIncomeFen;
+        if (platformIncomeFen != null) {
+            this.platformIncome = new BigDecimal(platformIncomeFen).divide(new BigDecimal("100"));
         }
     }
 
@@ -129,8 +136,13 @@ public class ReconOrderMainDO {
         this.payFee = payFee;
         if (payFee != null) {
             this.payFeeFen = payFee.multiply(new BigDecimal("100")).longValue();
-        } else {
-            this.payFeeFen = null;
+        }
+    }
+
+    public void setPayFeeFen(Long payFeeFen) {
+        this.payFeeFen = payFeeFen;
+        if (payFeeFen != null) {
+            this.payFee = new BigDecimal(payFeeFen).divide(new BigDecimal("100"));
         }
     }
 
@@ -138,8 +150,13 @@ public class ReconOrderMainDO {
         this.splitTotalAmount = splitTotalAmount;
         if (splitTotalAmount != null) {
             this.splitTotalAmountFen = splitTotalAmount.multiply(new BigDecimal("100")).longValue();
-        } else {
-            this.splitTotalAmountFen = null;
+        }
+    }
+
+    public void setSplitTotalAmountFen(Long splitTotalAmountFen) {
+        this.splitTotalAmountFen = splitTotalAmountFen;
+        if (splitTotalAmountFen != null) {
+            this.splitTotalAmount = new BigDecimal(splitTotalAmountFen).divide(new BigDecimal("100"));
         }
     }
 
@@ -147,8 +164,13 @@ public class ReconOrderMainDO {
         this.refundAmount = refundAmount;
         if (refundAmount != null) {
             this.refundAmountFen = refundAmount.multiply(new BigDecimal("100")).longValue();
-        } else {
-            this.refundAmountFen = null;
+        }
+    }
+
+    public void setRefundAmountFen(Long refundAmountFen) {
+        this.refundAmountFen = refundAmountFen;
+        if (refundAmountFen != null) {
+            this.refundAmount = new BigDecimal(refundAmountFen).divide(new BigDecimal("100"));
         }
     }
 

@@ -69,7 +69,7 @@ class RealtimeReconServiceTest {
                 when(reconRepository.batchSaveOrderSplitSub(any())).thenReturn(true);
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome,
+                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
                                 splitDetails, payStatus, splitStatus, notifyStatus);
 
@@ -101,7 +101,7 @@ class RealtimeReconServiceTest {
                 boolean notifyStatus = true;
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome,
+                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
                                 splitDetails, payStatus, splitStatus, notifyStatus);
 
@@ -112,10 +112,10 @@ class RealtimeReconServiceTest {
                 assertEquals(orderNo, result.getOrderNo());
 
                 // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId),
+                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
                                 eq("支付状态失败，对账失败"),
                                 eq(1));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), eq("支付状态失败，对账失败"));
+                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("支付状态失败，对账失败"));
         }
 
         @Test
@@ -133,7 +133,7 @@ class RealtimeReconServiceTest {
                 boolean notifyStatus = true;
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome,
+                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
                                 splitDetails, payStatus, splitStatus, notifyStatus);
 
@@ -144,10 +144,10 @@ class RealtimeReconServiceTest {
                 assertEquals(orderNo, result.getOrderNo());
 
                 // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId),
+                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
                                 eq("分账状态失败，对账失败"),
                                 eq(2));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), eq("分账状态失败，对账失败"));
+                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("分账状态失败，对账失败"));
         }
 
         @Test
@@ -165,7 +165,7 @@ class RealtimeReconServiceTest {
                 boolean notifyStatus = false; // 通知状态失败
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome,
+                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
                                 splitDetails, payStatus, splitStatus, notifyStatus);
 
@@ -176,10 +176,10 @@ class RealtimeReconServiceTest {
                 assertEquals(orderNo, result.getOrderNo());
 
                 // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId),
+                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
                                 eq("通知状态失败，对账失败"),
                                 eq(3));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), eq("通知状态失败，对账失败"));
+                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("通知状态失败，对账失败"));
         }
 
         @Test
@@ -197,7 +197,7 @@ class RealtimeReconServiceTest {
                 boolean notifyStatus = true;
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome,
+                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
                                 splitDetails, payStatus, splitStatus, notifyStatus);
 
@@ -208,9 +208,9 @@ class RealtimeReconServiceTest {
                 assertEquals(orderNo, result.getOrderNo());
 
                 // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId),
+                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
                                 eq("金额校验失败，实付金额与计算金额不一致"), eq(4));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), eq("金额校验失败，实付金额与计算金额不一致"));
+                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("金额校验失败，实付金额与计算金额不一致"));
         }
 
         @Test
@@ -231,7 +231,7 @@ class RealtimeReconServiceTest {
                 when(reconRepository.saveOrderMain(any())).thenThrow(new RuntimeException("数据库操作失败"));
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, merchantId, payAmount, platformIncome,
+                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
                                 splitDetails, payStatus, splitStatus, notifyStatus);
 
@@ -242,9 +242,9 @@ class RealtimeReconServiceTest {
                 assertEquals(orderNo, result.getOrderNo());
 
                 // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId), anyString(),
+                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"), anyString(),
                                 eq(5));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq(merchantId), anyString());
+                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), anyString());
         }
 
         @Test
@@ -261,7 +261,6 @@ class RealtimeReconServiceTest {
                 // 模拟原订单存在
                 ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
                 orderMainDO.setOrderNo(orderNo);
-                orderMainDO.setMerchantId(merchantId);
                 orderMainDO.setPayAmount(new BigDecimal("100.00")); // 实付 100
                 when(reconRepository.getOrderMainByOrderNo(orderNo)).thenReturn(orderMainDO);
 
@@ -290,7 +289,7 @@ class RealtimeReconServiceTest {
         void testReconRefund_RefundAmountTooLarge() {
                 // 准备测试数据
                 String orderNo = "TEST_REFUND_002";
-                String merchantId = "MERCHANT_001";
+
                 BigDecimal refundAmount = new BigDecimal("150.00"); // 退款 > 实付
                 LocalDateTime refundTime = LocalDateTime.now();
                 int refundStatus = 1;
@@ -299,7 +298,6 @@ class RealtimeReconServiceTest {
                 // 模拟原订单
                 ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
                 orderMainDO.setOrderNo(orderNo);
-                orderMainDO.setMerchantId(merchantId);
                 orderMainDO.setPayAmount(new BigDecimal("100.00"));
                 when(reconRepository.getOrderMainByOrderNo(orderNo)).thenReturn(orderMainDO);
 
@@ -312,7 +310,7 @@ class RealtimeReconServiceTest {
                 assertEquals("退款金额大于实付金额", result.getMessage());
 
                 // 验证异常记录
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq(merchantId),
+                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
                                 eq("退款金额大于实付金额"), eq(4));
         }
 

@@ -29,7 +29,7 @@ public class DemoApplication implements CommandLineRunner {
         // Create Mock Data
         ReconOrderMainDO orderMain = new ReconOrderMainDO();
         orderMain.setOrderNo("ORD-JAVA-123456");
-        orderMain.setMerchantId("MCH-JAVA-001");
+
         orderMain.setPayAmount(new BigDecimal("300.00"));
         orderMain.setPlatformIncome(BigDecimal.ZERO);
         orderMain.setPayFee(BigDecimal.ZERO);

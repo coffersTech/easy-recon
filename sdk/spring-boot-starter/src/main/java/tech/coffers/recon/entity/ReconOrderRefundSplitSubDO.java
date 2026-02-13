@@ -28,7 +28,7 @@ public class ReconOrderRefundSplitSubDO {
     private String orderNo;
 
     /**
-     * 商户ID
+     * 商户ID (分账接收方/退款方)
      */
     private String merchantId;
 
@@ -56,8 +56,13 @@ public class ReconOrderRefundSplitSubDO {
         this.refundSplitAmount = refundSplitAmount;
         if (refundSplitAmount != null) {
             this.refundSplitAmountFen = refundSplitAmount.multiply(new BigDecimal("100")).longValue();
-        } else {
-            this.refundSplitAmountFen = null;
+        }
+    }
+
+    public void setRefundSplitAmountFen(Long refundSplitAmountFen) {
+        this.refundSplitAmountFen = refundSplitAmountFen;
+        if (refundSplitAmountFen != null) {
+            this.refundSplitAmount = new BigDecimal(refundSplitAmountFen).divide(new BigDecimal("100"));
         }
     }
 

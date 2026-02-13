@@ -4,7 +4,6 @@
 CREATE TABLE IF NOT EXISTS "easy_recon_order_main" (
   "id" BIGSERIAL NOT NULL PRIMARY KEY COMMENT '主键 ID',
   "order_no" VARCHAR(64) NOT NULL COMMENT '订单号',
-  "merchant_id" VARCHAR(64) NOT NULL COMMENT '商户 ID',
   "pay_amount" DECIMAL(18,2) NOT NULL COMMENT '实付金额',
   "platform_income" DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '平台收入',
   "pay_fee" DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '支付手续费',
@@ -26,7 +25,6 @@ CREATE TABLE IF NOT EXISTS "easy_recon_order_main" (
 CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_no" ON "easy_recon_order_main" ("order_no");
 
 -- 创建普通索引
-CREATE INDEX IF NOT EXISTS "idx_merchant_id" ON "easy_recon_order_main" ("merchant_id");
 CREATE INDEX IF NOT EXISTS "idx_recon_status" ON "easy_recon_order_main" ("recon_status");
 CREATE INDEX IF NOT EXISTS "idx_create_time" ON "easy_recon_order_main" ("create_time");
 

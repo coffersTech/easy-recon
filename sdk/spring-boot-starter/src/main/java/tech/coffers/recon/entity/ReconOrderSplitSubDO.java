@@ -28,7 +28,7 @@ public class ReconOrderSplitSubDO {
     private String orderNo;
 
     /**
-     * 商户ID
+     * 商户ID (分账接收方)
      */
     private String merchantId;
 
@@ -56,8 +56,13 @@ public class ReconOrderSplitSubDO {
         this.splitAmount = splitAmount;
         if (splitAmount != null) {
             this.splitAmountFen = splitAmount.multiply(new BigDecimal("100")).longValue();
-        } else {
-            this.splitAmountFen = null;
+        }
+    }
+
+    public void setSplitAmountFen(Long splitAmountFen) {
+        this.splitAmountFen = splitAmountFen;
+        if (splitAmountFen != null) {
+            this.splitAmount = new BigDecimal(splitAmountFen).divide(new BigDecimal("100"));
         }
     }
 

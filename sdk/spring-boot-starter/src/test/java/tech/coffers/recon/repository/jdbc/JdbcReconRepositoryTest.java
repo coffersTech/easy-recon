@@ -46,7 +46,7 @@ public class JdbcReconRepositoryTest {
     public void testSaveOrderMain_SetsFenFields() throws SQLException {
         ReconOrderMainDO orderMain = new ReconOrderMainDO();
         orderMain.setOrderNo("ORD001");
-        orderMain.setMerchantId("MCH001");
+
         orderMain.setPayAmount(new BigDecimal("100.00")); // 10000 Fen
 
         when(jdbcTemplate.update(anyString(), any(PreparedStatementSetter.class))).thenAnswer(invocation -> {
@@ -57,6 +57,6 @@ public class JdbcReconRepositoryTest {
 
         repository.saveOrderMain(orderMain);
 
-        verify(preparedStatement).setObject(4, 10000L); // payAmountFen at index 4
+        verify(preparedStatement).setObject(3, 10000L); // payAmountFen at index 3
     }
 }

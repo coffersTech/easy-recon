@@ -51,18 +51,17 @@ public class JdbcReconRepository implements ReconRepository {
             String sql = dialectFactory.getDialect().getInsertOrderMainSql(tableName);
             int rows = jdbcTemplate.update(sql, ps -> {
                 ps.setString(1, orderMainDO.getOrderNo());
-                ps.setString(2, orderMainDO.getMerchantId());
-                ps.setBigDecimal(3, orderMainDO.getPayAmount());
-                ps.setObject(4, orderMainDO.getPayAmountFen());
-                ps.setBigDecimal(5, orderMainDO.getPlatformIncome());
-                ps.setObject(6, orderMainDO.getPlatformIncomeFen());
-                ps.setBigDecimal(7, orderMainDO.getPayFee());
-                ps.setObject(8, orderMainDO.getPayFeeFen());
-                ps.setBigDecimal(9, orderMainDO.getSplitTotalAmount());
-                ps.setObject(10, orderMainDO.getSplitTotalAmountFen());
-                ps.setInt(11, orderMainDO.getReconStatus());
-                ps.setObject(12, orderMainDO.getCreateTime());
-                ps.setObject(13, orderMainDO.getUpdateTime());
+                ps.setBigDecimal(2, orderMainDO.getPayAmount());
+                ps.setObject(3, orderMainDO.getPayAmountFen());
+                ps.setBigDecimal(4, orderMainDO.getPlatformIncome());
+                ps.setObject(5, orderMainDO.getPlatformIncomeFen());
+                ps.setBigDecimal(6, orderMainDO.getPayFee());
+                ps.setObject(7, orderMainDO.getPayFeeFen());
+                ps.setBigDecimal(8, orderMainDO.getSplitTotalAmount());
+                ps.setObject(9, orderMainDO.getSplitTotalAmountFen());
+                ps.setInt(10, orderMainDO.getReconStatus());
+                ps.setObject(11, orderMainDO.getCreateTime());
+                ps.setObject(12, orderMainDO.getUpdateTime());
             });
             return rows > 0;
         } catch (Exception e) {
@@ -254,51 +253,6 @@ public class JdbcReconRepository implements ReconRepository {
     // ==================== 新增查询方法 ====================
 
     @Override
-    public List<ReconOrderMainDO> getOrderMainByMerchantId(String merchantId, String startDate, String endDate,
-            Integer reconStatus, int offset, int limit) {
-        try {
-            String tableName = properties.getTablePrefix() + "order_main";
-            StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE merchant_id = ?");
-
-            // 添加日期条件
-            if (startDate != null && !startDate.isEmpty()) {
-                sql.append(" AND DATE(create_time) >= ?");
-            }
-            if (endDate != null && !endDate.isEmpty()) {
-                sql.append(" AND DATE(create_time) <= ?");
-            }
-
-            // 添加对账状态条件
-            if (reconStatus != null) {
-                sql.append(" AND recon_status = ?");
-            }
-
-            // 添加排序和分页
-            sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
-
-            // 构建参数
-            java.util.List<Object> params = new java.util.ArrayList<>();
-            params.add(merchantId);
-            if (startDate != null && !startDate.isEmpty()) {
-                params.add(startDate);
-            }
-            if (endDate != null && !endDate.isEmpty()) {
-                params.add(endDate);
-            }
-            if (reconStatus != null) {
-                params.add(reconStatus);
-            }
-            params.add(limit);
-            params.add(offset);
-
-            return jdbcTemplate.query(sql.toString(), new OrderMainRowMapper(), params.toArray());
-        } catch (Exception e) {
-            log.error("根据商户ID查询对账订单失败", e);
-            return null;
-        }
-    }
-
-    @Override
     public List<ReconOrderMainDO> getOrderMainByDate(String dateStr, Integer reconStatus, int offset, int limit) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
@@ -336,9 +290,12 @@ public class JdbcReconRepository implements ReconRepository {
             StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName);
 
             // 添加条件
+            java.util.List<Object> params = new java.util.ArrayList<>();
             boolean hasWhere = false;
+
             if (merchantId != null && !merchantId.isEmpty()) {
                 sql.append(" WHERE merchant_id = ?");
+                params.add(merchantId);
                 hasWhere = true;
             }
 
@@ -374,20 +331,6 @@ public class JdbcReconRepository implements ReconRepository {
             // 添加排序和分页
             sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
 
-            // 构建参数
-            java.util.List<Object> params = new java.util.ArrayList<>();
-            if (merchantId != null && !merchantId.isEmpty()) {
-                params.add(merchantId);
-            }
-            if (startDate != null && !startDate.isEmpty()) {
-                params.add(startDate);
-            }
-            if (endDate != null && !endDate.isEmpty()) {
-                params.add(endDate);
-            }
-            if (exceptionStep != null) {
-                params.add(exceptionStep);
-            }
             params.add(limit);
             params.add(offset);
 
@@ -621,46 +564,6 @@ public class JdbcReconRepository implements ReconRepository {
     // ==================== 行映射器 ====================
 
     @Override
-    public long countOrderMainByMerchantId(String merchantId, String startDate, String endDate, Integer reconStatus) {
-        try {
-            String tableName = properties.getTablePrefix() + "order_main";
-            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE merchant_id = ?");
-
-            // 添加日期条件
-            if (startDate != null && !startDate.isEmpty()) {
-                sql.append(" AND DATE(create_time) >= ?");
-            }
-            if (endDate != null && !endDate.isEmpty()) {
-                sql.append(" AND DATE(create_time) <= ?");
-            }
-
-            // 添加对账状态条件
-            if (reconStatus != null) {
-                sql.append(" AND recon_status = ?");
-            }
-
-            // 构建参数
-            java.util.List<Object> params = new java.util.ArrayList<>();
-            params.add(merchantId);
-            if (startDate != null && !startDate.isEmpty()) {
-                params.add(startDate);
-            }
-            if (endDate != null && !endDate.isEmpty()) {
-                params.add(endDate);
-            }
-            if (reconStatus != null) {
-                params.add(reconStatus);
-            }
-
-            Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
-            return count != null ? count : 0;
-        } catch (Exception e) {
-            log.error("统计商户对账订单数量失败", e);
-            return 0;
-        }
-    }
-
-    @Override
     public long countOrderMainByDate(String dateStr, Integer reconStatus) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
@@ -760,7 +663,7 @@ public class JdbcReconRepository implements ReconRepository {
             ReconOrderMainDO mainDO = new ReconOrderMainDO();
             mainDO.setId(rs.getLong("id"));
             mainDO.setOrderNo(rs.getString("order_no"));
-            mainDO.setMerchantId(rs.getString("merchant_id"));
+
             mainDO.setPayAmount(rs.getBigDecimal("pay_amount"));
             mainDO.setPayAmountFen(rs.getObject("pay_amount_fen", Long.class));
             mainDO.setPlatformIncome(rs.getBigDecimal("platform_income"));

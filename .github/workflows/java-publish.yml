@@ -15,34 +15,38 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # 用于Maven Central签名验证（可选）
 
     steps:
       - uses: actions/checkout@v3
+
+      # 仅初始化一次JDK，同时配置Maven服务器信息
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
           java-version: '11'
           distribution: 'temurin'
-          server-id: ossrh
-          server-username: ${{ secrets.MAVEN_USERNAME }}
-          server-password: ${{ secrets.MAVEN_PASSWORD }}
-          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
-          gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          cache: maven  # 缓存Maven依赖，加速构建
+          server-id: ossrh  # Maven Central的服务器ID
+          server-id: github  # GitHub Packages的服务器ID
+          settings-path: ${{ github.workspace }}/.github  # 生成settings.xml的路径
+
+      # 核心修复：正确导入GPG密钥（替代无效的gpg-private-key参数）
+      - name: Import GPG private key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          trust_level: ultimate  # 信任该密钥
+          cleanup: true  # 自动清理密钥，避免泄露
+
+      # 构建并验证包（先打包，再部署）
+      - name: Build with Maven
+        run: mvn -B clean package --file sdk/spring-boot-starter/pom.xml
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
-
-      - name: Configure Maven for GitHub Packages
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'temurin'
-          server-id: github
-          settings-path: ${{ github.workspace }}/.github
-
-      - name: Build with Maven
-        run: mvn -B package --file sdk/spring-boot-starter/pom.xml
-
+      # 部署到Maven Central（按需保留，若不需要可删除）
       - name: Publish to Maven Central
         run: mvn -B deploy --file sdk/spring-boot-starter/pom.xml -P release
         env:
@@ -50,11 +54,14 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
+      # 修复GitHub Packages部署：传递GPG密码，避免版本冲突
       - name: Publish to GitHub Packages
         run: |
           mvn -B deploy --file sdk/spring-boot-starter/pom.xml \
           -s ${{ github.workspace }}/.github/settings.xml \
           -DskipTests -Dmaven.install.skip=true \
-          -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/coffersTech/easy-recon
+          -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/coffersTech/easy-recon \
+          -Dgpg.passphrase=${{ secrets.MAVEN_GPG_PASSPHRASE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}

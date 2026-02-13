@@ -218,14 +218,6 @@ public void handleRefund(String orderNo, BigDecimal refundAmount) {
         LocalDateTime.now(), 
         1, // 1=部分退款, 2=全额退款
         splitDetails
-    );
-}
-```
-
-    );
-}
-```
-
 ### 5. 退款对账（异步）
 
 ```java

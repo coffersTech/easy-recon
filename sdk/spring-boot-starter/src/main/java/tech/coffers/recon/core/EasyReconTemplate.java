@@ -78,6 +78,25 @@ public class EasyReconTemplate {
     }
 
     /**
+     * 异步执行退款对账
+     *
+     * @param orderNo      订单号
+     * @param refundAmount 退款金额
+     * @param refundTime   退款时间
+     * @param refundStatus 退款状态
+     * @param splitDetails 退款分账详情
+     * @return 异步对账结果
+     */
+    public CompletableFuture<Boolean> reconRefundAsync(String orderNo, java.math.BigDecimal refundAmount,
+            java.time.LocalDateTime refundTime, int refundStatus,
+            java.util.Map<String, java.math.BigDecimal> splitDetails) {
+        // 使用 supplyAsync 的回调链将 ReconResult 转换为 Boolean
+        return realtimeReconService
+                .reconRefundAsync(orderNo, refundAmount, refundTime, refundStatus, splitDetails)
+                .thenApply(tech.coffers.recon.api.result.ReconResult::isSuccess);
+    }
+
+    /**
      * 执行定时退款对账
      *
      * @param dateStr 对账日期（yyyy-MM-dd）

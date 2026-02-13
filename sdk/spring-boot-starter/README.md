@@ -124,7 +124,15 @@ CompletableFuture<Boolean> doRealtimeReconAsync(ReconOrderMainDO orderMainDO, Li
 boolean reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime, int refundStatus, Map<String, BigDecimal> splitDetails);
 ```
 
-#### 4. 定时对账触发
+#### 4. 异步退款对账
+
+用于不阻塞主业务流程的退款对账操作。
+
+```java
+CompletableFuture<Boolean> reconRefundAsync(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime, int refundStatus, Map<String, BigDecimal> splitDetails);
+```
+
+#### 5. 定时对账触发
 
 手动触发指定日期的定时对账任务（通常由定时任务自动调用）。
 
@@ -211,6 +219,23 @@ public void handleRefund(String orderNo, BigDecimal refundAmount) {
         1, // 1=部分退款, 2=全额退款
         splitDetails
     );
+}
+```
+
+    );
+}
+```
+
+### 5. 退款对账（异步）
+
+```java
+public void handleRefundAsync(String orderNo, BigDecimal refundAmount) {
+    // ... 构建参数
+
+    easyReconTemplate.reconRefundAsync(orderNo, refundAmount, LocalDateTime.now(), 1, splitDetails)
+        .thenAccept(result -> {
+            // 处理异步结果
+        });
 }
 ```
 

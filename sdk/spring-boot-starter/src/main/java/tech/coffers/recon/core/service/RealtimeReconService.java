@@ -231,6 +231,23 @@ public class RealtimeReconService {
         }
     }
 
+    /**
+     * 异步对账退款
+     *
+     * @param orderNo      订单号
+     * @param refundAmount 退款金额
+     * @param refundTime   退款时间
+     * @param refundStatus 退款状态
+     * @param splitDetails 退款分账详情
+     * @return 异步对账结果
+     */
+    public CompletableFuture<ReconResult> reconRefundAsync(String orderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime,
+            int refundStatus, Map<String, BigDecimal> splitDetails) {
+        return CompletableFuture.supplyAsync(
+                () -> reconRefund(orderNo, refundAmount, refundTime, refundStatus, splitDetails), executorService);
+    }
+
     private void recordException(String orderNo, String merchantId, String msg, int step) {
         exceptionRecordService.recordReconException(orderNo, merchantId, msg, step);
         alarmService.sendReconAlarm(orderNo, merchantId, msg);

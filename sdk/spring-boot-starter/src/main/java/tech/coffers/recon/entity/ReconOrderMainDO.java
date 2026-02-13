@@ -38,9 +38,19 @@ public class ReconOrderMainDO {
     private BigDecimal payAmount;
 
     /**
+     * 支付金额（分）
+     */
+    private Long payAmountFen;
+
+    /**
      * 平台收入
      */
     private BigDecimal platformIncome;
+
+    /**
+     * 平台收入（分）
+     */
+    private Long platformIncomeFen;
 
     /**
      * 支付手续费
@@ -48,9 +58,19 @@ public class ReconOrderMainDO {
     private BigDecimal payFee;
 
     /**
+     * 支付手续费（分）
+     */
+    private Long payFeeFen;
+
+    /**
      * 分账总金额
      */
     private BigDecimal splitTotalAmount;
+
+    /**
+     * 分账总金额（分）
+     */
+    private Long splitTotalAmountFen;
 
     /**
      * 对账状态：0=待对账，1=成功，2=失败
@@ -66,5 +86,70 @@ public class ReconOrderMainDO {
      * 更新时间
      */
     private LocalDateTime updateTime;
+
+    /**
+     * 退款金额
+     */
+    private BigDecimal refundAmount;
+
+    /**
+     * 退款金额（分）
+     */
+    private Long refundAmountFen;
+
+    /**
+     * 退款状态：0=未退款，1=部分退款，2=全额退款
+     */
+    private Integer refundStatus;
+
+    /**
+     * 退款时间
+     */
+    private LocalDateTime refundTime;
+
+    public void setPayAmount(BigDecimal payAmount) {
+        this.payAmount = payAmount;
+        if (payAmount != null) {
+            this.payAmountFen = payAmount.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.payAmountFen = null;
+        }
+    }
+
+    public void setPlatformIncome(BigDecimal platformIncome) {
+        this.platformIncome = platformIncome;
+        if (platformIncome != null) {
+            this.platformIncomeFen = platformIncome.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.platformIncomeFen = null;
+        }
+    }
+
+    public void setPayFee(BigDecimal payFee) {
+        this.payFee = payFee;
+        if (payFee != null) {
+            this.payFeeFen = payFee.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.payFeeFen = null;
+        }
+    }
+
+    public void setSplitTotalAmount(BigDecimal splitTotalAmount) {
+        this.splitTotalAmount = splitTotalAmount;
+        if (splitTotalAmount != null) {
+            this.splitTotalAmountFen = splitTotalAmount.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.splitTotalAmountFen = null;
+        }
+    }
+
+    public void setRefundAmount(BigDecimal refundAmount) {
+        this.refundAmount = refundAmount;
+        if (refundAmount != null) {
+            this.refundAmountFen = refundAmount.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.refundAmountFen = null;
+        }
+    }
 
 }

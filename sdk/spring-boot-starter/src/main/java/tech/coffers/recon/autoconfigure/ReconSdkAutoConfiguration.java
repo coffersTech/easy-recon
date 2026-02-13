@@ -123,16 +123,17 @@ public class ReconSdkAutoConfiguration {
     /**
      * 创建定时对账服务
      *
-     * @param reconRepository 对账存储库
-     * @param executorService 线程池
-     * @param alarmService    告警服务
+     * @param reconRepository        对账存储库
+     * @param exceptionRecordService 异常记录服务
+     * @param alarmService           告警服务
+     * @param properties             配置属性
      * @return 定时对账服务
      */
     @Bean
     @ConditionalOnMissingBean(TimingReconService.class)
     public TimingReconService timingReconService(ReconRepository reconRepository,
-            AlarmService alarmService) {
-        return new TimingReconService(reconRepository, alarmService);
+            ExceptionRecordService exceptionRecordService, AlarmService alarmService, ReconSdkProperties properties) {
+        return new TimingReconService(reconRepository, exceptionRecordService, alarmService, properties);
     }
 
     /**

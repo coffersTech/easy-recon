@@ -9,6 +9,14 @@ CREATE TABLE IF NOT EXISTS "easy_recon_order_main" (
   "platform_income" DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '平台收入',
   "pay_fee" DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '支付手续费',
   "split_total_amount" DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '分账总金额',
+  "pay_amount_fen" BIGINT COMMENT '实付金额（分）',
+  "platform_income_fen" BIGINT COMMENT '平台收入（分）',
+  "pay_fee_fen" BIGINT COMMENT '支付手续费（分）',
+  "split_total_amount_fen" BIGINT COMMENT '分账总金额（分）',
+  "refund_amount" DECIMAL(18,2) DEFAULT 0.00 COMMENT '退款金额',
+  "refund_amount_fen" BIGINT COMMENT '退款金额（分）',
+  "refund_status" SMALLINT DEFAULT 0 COMMENT '退款状态：0=未退款，1=部分退款，2=全额退款',
+  "refund_time" TIMESTAMP COMMENT '退款时间',
   "recon_status" SMALLINT NOT NULL DEFAULT 0 COMMENT '对账状态：0=待对账，1=成功，2=失败',
   "create_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   "update_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间'
@@ -28,9 +36,25 @@ CREATE TABLE IF NOT EXISTS "easy_recon_order_split_sub" (
   "order_no" VARCHAR(64) NOT NULL COMMENT '订单号',
   "merchant_id" VARCHAR(64) NOT NULL COMMENT '商户 ID',
   "split_amount" DECIMAL(18,2) NOT NULL COMMENT '分账金额',
+  "split_amount_fen" BIGINT COMMENT '分账金额（分）',
   "create_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   "update_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间'
 );
+
+-- 对账订单退款分账子记录
+CREATE TABLE IF NOT EXISTS "easy_recon_order_refund_split_sub" (
+  "id" BIGSERIAL NOT NULL PRIMARY KEY COMMENT '主键 ID',
+  "order_no" VARCHAR(64) NOT NULL COMMENT '订单号',
+  "merchant_id" VARCHAR(64) NOT NULL COMMENT '商户 ID',
+  "refund_split_amount" DECIMAL(18,2) NOT NULL COMMENT '退款分账金额',
+  "refund_split_amount_fen" BIGINT COMMENT '退款分账金额（分）',
+  "create_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  "update_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间'
+);
+
+-- 创建普通索引
+CREATE INDEX IF NOT EXISTS "idx_order_no_refund" ON "easy_recon_order_refund_split_sub" ("order_no");
+CREATE INDEX IF NOT EXISTS "idx_merchant_id_refund" ON "easy_recon_order_refund_split_sub" ("merchant_id");
 
 -- 创建唯一索引
 CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_merchant" ON "easy_recon_order_split_sub" ("order_no", "merchant_id");
@@ -96,6 +120,12 @@ CREATE TRIGGER update_easy_recon_order_main_modtime
 -- 为对账订单分账子记录创建触发器
 CREATE TRIGGER update_easy_recon_order_split_sub_modtime
     BEFORE UPDATE ON "easy_recon_order_split_sub"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_modified_column();
+
+-- 为对账订单退款分账子记录创建触发器
+CREATE TRIGGER update_easy_recon_order_refund_split_sub_modtime
+    BEFORE UPDATE ON "easy_recon_order_refund_split_sub"
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
 

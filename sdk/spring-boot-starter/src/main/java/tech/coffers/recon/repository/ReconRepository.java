@@ -2,6 +2,8 @@ package tech.coffers.recon.repository;
 
 import tech.coffers.recon.entity.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -95,23 +97,24 @@ public interface ReconRepository {
     /**
      * 根据商户ID查询对账订单主记录（分页）
      *
-     * @param merchantId 商户ID
-     * @param startDate 开始日期（yyyy-MM-dd）
-     * @param endDate 结束日期（yyyy-MM-dd）
+     * @param merchantId  商户ID
+     * @param startDate   开始日期（yyyy-MM-dd）
+     * @param endDate     结束日期（yyyy-MM-dd）
      * @param reconStatus 对账状态（null 表示全部）
-     * @param offset 偏移量
-     * @param limit 限制数量
+     * @param offset      偏移量
+     * @param limit       限制数量
      * @return 对账订单主记录列表
      */
-    List<ReconOrderMainDO> getOrderMainByMerchantId(String merchantId, String startDate, String endDate, Integer reconStatus, int offset, int limit);
+    List<ReconOrderMainDO> getOrderMainByMerchantId(String merchantId, String startDate, String endDate,
+            Integer reconStatus, int offset, int limit);
 
     /**
      * 根据日期查询对账订单主记录（分页）
      *
-     * @param dateStr 日期（yyyy-MM-dd）
+     * @param dateStr     日期（yyyy-MM-dd）
      * @param reconStatus 对账状态（null 表示全部）
-     * @param offset 偏移量
-     * @param limit 限制数量
+     * @param offset      偏移量
+     * @param limit       限制数量
      * @return 对账订单主记录列表
      */
     List<ReconOrderMainDO> getOrderMainByDate(String dateStr, Integer reconStatus, int offset, int limit);
@@ -119,15 +122,16 @@ public interface ReconRepository {
     /**
      * 查询对账异常记录（分页）
      *
-     * @param merchantId 商户ID（null 表示全部）
-     * @param startDate 开始日期（yyyy-MM-dd）
-     * @param endDate 结束日期（yyyy-MM-dd）
+     * @param merchantId    商户ID（null 表示全部）
+     * @param startDate     开始日期（yyyy-MM-dd）
+     * @param endDate       结束日期（yyyy-MM-dd）
      * @param exceptionStep 异常步骤（null 表示全部）
-     * @param offset 偏移量
-     * @param limit 限制数量
+     * @param offset        偏移量
+     * @param limit         限制数量
      * @return 对账异常记录列表
      */
-    List<ReconExceptionDO> getExceptionRecords(String merchantId, String startDate, String endDate, Integer exceptionStep, int offset, int limit);
+    List<ReconExceptionDO> getExceptionRecords(String merchantId, String startDate, String endDate,
+            Integer exceptionStep, int offset, int limit);
 
     /**
      * 根据订单号查询对账异常记录
@@ -136,6 +140,36 @@ public interface ReconRepository {
      * @return 对账异常记录
      */
     ReconExceptionDO getExceptionByOrderNo(String orderNo);
+
+    // ==================== 退款操作 ====================
+
+    /**
+     * 批量保存退款分账子记录
+     *
+     * @param refundSplitSubDOs 退款分账子记录列表
+     * @return 保存结果
+     */
+    boolean batchSaveOrderRefundSplitSub(List<ReconOrderRefundSplitSubDO> refundSplitSubDOs);
+
+    /**
+     * 更新退款对账状态
+     *
+     * @param orderNo      订单号
+     * @param refundStatus 退款对账状态
+     * @param refundAmount 退款金额
+     * @param refundTime   退款时间
+     * @return 更新结果
+     */
+    boolean updateReconRefundStatus(String orderNo, int refundStatus, BigDecimal refundAmount,
+            LocalDateTime refundTime);
+
+    /**
+     * 根据订单号查询退款分账子记录
+     *
+     * @param orderNo 订单号
+     * @return 退款分账子记录列表
+     */
+    List<ReconOrderRefundSplitSubDO> getOrderRefundSplitSubByOrderNo(String orderNo);
 
     // ==================== 对账规则操作 ====================
 
@@ -174,7 +208,7 @@ public interface ReconRepository {
      * 查询对账规则列表（分页）
      *
      * @param offset 偏移量
-     * @param limit 限制数量
+     * @param limit  限制数量
      * @return 对账规则列表
      */
     List<ReconRuleDO> getReconRules(int offset, int limit);

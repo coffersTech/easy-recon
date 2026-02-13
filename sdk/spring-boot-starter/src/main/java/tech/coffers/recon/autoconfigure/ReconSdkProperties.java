@@ -2,6 +2,7 @@ package tech.coffers.recon.autoconfigure;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import java.math.BigDecimal;
 
 /**
  * Easy Recon SDK 配置属性
@@ -24,7 +25,7 @@ public class ReconSdkProperties {
     /**
      * 金额容差（默认 0.01）
      */
-    private double amountTolerance = 0.01;
+    private BigDecimal amountTolerance = new BigDecimal("0.01");
 
     /**
      * 定时核账批次大小（默认 1000）

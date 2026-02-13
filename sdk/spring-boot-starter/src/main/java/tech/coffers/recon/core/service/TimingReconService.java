@@ -3,6 +3,9 @@ package tech.coffers.recon.core.service;
 import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.repository.ReconRepository;
 
+import tech.coffers.recon.autoconfigure.ReconSdkProperties;
+import tech.coffers.recon.entity.ReconOrderSplitSubDO;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -18,10 +21,15 @@ public class TimingReconService {
 
     private final ReconRepository reconRepository;
     private final AlarmService alarmService;
+    private final ExceptionRecordService exceptionRecordService;
+    private final ReconSdkProperties properties;
 
-    public TimingReconService(ReconRepository reconRepository, AlarmService alarmService) {
+    public TimingReconService(ReconRepository reconRepository, ExceptionRecordService exceptionRecordService,
+            AlarmService alarmService, ReconSdkProperties properties) {
         this.reconRepository = reconRepository;
+        this.exceptionRecordService = exceptionRecordService;
         this.alarmService = alarmService;
+        this.properties = properties;
     }
 
     /**
@@ -67,14 +75,53 @@ public class TimingReconService {
      */
     private void processPendingOrder(ReconOrderMainDO order) {
         try {
-            // 这里可以添加更复杂的对账逻辑
-            // 例如：与第三方支付平台对账、金额校验等
+            // 1. 获取分账子记录
+            List<ReconOrderSplitSubDO> splitSubDOs = reconRepository.getOrderSplitSubByOrderNo(order.getOrderNo());
 
-            // 更新对账状态为已对账
+            // 2. 计算分账总额
+            BigDecimal splitTotal = BigDecimal.ZERO;
+            if (splitSubDOs != null) {
+                for (ReconOrderSplitSubDO sub : splitSubDOs) {
+                    splitTotal = splitTotal.add(sub.getSplitAmount());
+                }
+            }
+
+            // 3. 校验金额 (实付金额 = 平台收入 + 支付手续费 + 分账总额)
+            BigDecimal calcAmount = splitTotal.add(order.getPlatformIncome()).add(order.getPayFee());
+
+            if (order.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
+                // 金额校验失败
+                recordException(order.getOrderNo(), order.getMerchantId(), "定时对账失败：金额校验不一致", 4);
+                reconRepository.updateReconStatus(order.getOrderNo(), 2); // 2: 失败
+                return;
+            }
+
+            // 4. 更新对账状态为已对账
             reconRepository.updateReconStatus(order.getOrderNo(), 1); // 1: 已对账
+
         } catch (Exception e) {
-            alarmService.sendAlarm("处理订单 " + order.getOrderNo() + " 失败: " + e.getMessage());
+            recordException(order.getOrderNo(), order.getMerchantId(), "定时对账异常: " + e.getMessage(), 5);
         }
+    }
+
+    private void recordException(String orderNo, String merchantId, String msg, int step) {
+        exceptionRecordService.recordReconException(orderNo, merchantId, msg, step);
+        alarmService.sendReconAlarm(orderNo, merchantId, msg);
+    }
+
+    /**
+     * 执行定时退款对账
+     *
+     * @param dateStr 对账日期（yyyy-MM-dd）
+     * @return 对账结果
+     */
+    public boolean doTimingRefundRecon(String dateStr) {
+        // TODO: 实现定时退款对账逻辑
+        // 1. 查询当日发生的退款订单
+        // 2. 对于每笔退款，校验金额和分账
+        // 3. 更新退款对账状态
+        // 目前简化处理，仅作为占位符，后续根据实际业务需求完善
+        return true;
     }
 
 }

@@ -10,7 +10,6 @@ import tech.coffers.recon.entity.ReconOrderSplitSubDO;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @SpringBootApplication
@@ -62,6 +61,27 @@ public class DemoApplication implements CommandLineRunner {
             boolean success = easyReconTemplate.doRealtimeRecon(orderMain, splitSubs);
             if (success) {
                 System.out.println("--- Recon Successful ---");
+
+                // Simulate Refund
+                System.out.println("--- Starting Refund Recon ---");
+                String orderNo = "ORD-JAVA-123456";
+                BigDecimal refundAmount = new BigDecimal("50.00");
+                java.time.LocalDateTime refundTime = java.time.LocalDateTime.now();
+                int refundStatus = 1; // Partial Refund
+                java.util.Map<String, BigDecimal> refundSplitDetails = new java.util.HashMap<>();
+                refundSplitDetails.put("MCH-SUB-001", new BigDecimal("50.00"));
+
+                boolean refundSuccess = easyReconTemplate.reconRefund(orderNo, refundAmount, refundTime, refundStatus,
+                        refundSplitDetails);
+                if (refundSuccess) {
+                    System.out.println("--- Refund Recon Successful ---");
+                    // Verify data in DB (Simulated by printing expected values)
+                    System.out.println("Order Pay Amount Fen: " + orderMain.getPayAmountFen());
+                    System.out.println("Split Total Amount Fen: " + orderMain.getSplitTotalAmountFen());
+                } else {
+                    System.out.println("--- Refund Recon Failed ---");
+                }
+
             } else {
                 System.out.println("--- Recon Failed ---");
             }

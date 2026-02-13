@@ -6,16 +6,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 对账订单分账子记录
+ * 对账订单退款分账子记录
  * <p>
- * 存储订单的分账详情，包括每个商户的分账金额
+ * 存储订单的退款分账信息
  * </p>
  *
  * @author Ryan
  * @since 1.0.0
  */
 @Data
-public class ReconOrderSplitSubDO {
+public class ReconOrderRefundSplitSubDO {
 
     /**
      * 主键ID
@@ -33,14 +33,14 @@ public class ReconOrderSplitSubDO {
     private String merchantId;
 
     /**
-     * 分账金额
+     * 退款分账金额
      */
-    private BigDecimal splitAmount;
+    private BigDecimal refundSplitAmount;
 
     /**
-     * 分账金额（分）
+     * 退款分账金额（分）
      */
-    private Long splitAmountFen;
+    private Long refundSplitAmountFen;
 
     /**
      * 创建时间
@@ -52,12 +52,12 @@ public class ReconOrderSplitSubDO {
      */
     private LocalDateTime updateTime;
 
-    public void setSplitAmount(BigDecimal splitAmount) {
-        this.splitAmount = splitAmount;
-        if (splitAmount != null) {
-            this.splitAmountFen = splitAmount.multiply(new BigDecimal("100")).longValue();
+    public void setRefundSplitAmount(BigDecimal refundSplitAmount) {
+        this.refundSplitAmount = refundSplitAmount;
+        if (refundSplitAmount != null) {
+            this.refundSplitAmountFen = refundSplitAmount.multiply(new BigDecimal("100")).longValue();
         } else {
-            this.splitAmountFen = null;
+            this.refundSplitAmountFen = null;
         }
     }
 

@@ -9,6 +9,7 @@ import tech.coffers.recon.dialect.ReconDialectFactory;
 import tech.coffers.recon.entity.*;
 import tech.coffers.recon.repository.ReconRepository;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -52,12 +53,16 @@ public class JdbcReconRepository implements ReconRepository {
                 ps.setString(1, orderMainDO.getOrderNo());
                 ps.setString(2, orderMainDO.getMerchantId());
                 ps.setBigDecimal(3, orderMainDO.getPayAmount());
-                ps.setBigDecimal(4, orderMainDO.getPlatformIncome());
-                ps.setBigDecimal(5, orderMainDO.getPayFee());
-                ps.setBigDecimal(6, orderMainDO.getSplitTotalAmount());
-                ps.setInt(7, orderMainDO.getReconStatus());
-                ps.setObject(8, orderMainDO.getCreateTime());
-                ps.setObject(9, orderMainDO.getUpdateTime());
+                ps.setObject(4, orderMainDO.getPayAmountFen());
+                ps.setBigDecimal(5, orderMainDO.getPlatformIncome());
+                ps.setObject(6, orderMainDO.getPlatformIncomeFen());
+                ps.setBigDecimal(7, orderMainDO.getPayFee());
+                ps.setObject(8, orderMainDO.getPayFeeFen());
+                ps.setBigDecimal(9, orderMainDO.getSplitTotalAmount());
+                ps.setObject(10, orderMainDO.getSplitTotalAmountFen());
+                ps.setInt(11, orderMainDO.getReconStatus());
+                ps.setObject(12, orderMainDO.getCreateTime());
+                ps.setObject(13, orderMainDO.getUpdateTime());
             });
             return rows > 0;
         } catch (Exception e) {
@@ -97,8 +102,9 @@ public class JdbcReconRepository implements ReconRepository {
                     ps.setString(1, subDO.getOrderNo());
                     ps.setString(2, subDO.getMerchantId());
                     ps.setBigDecimal(3, subDO.getSplitAmount());
-                    ps.setObject(4, subDO.getCreateTime());
-                    ps.setObject(5, subDO.getUpdateTime());
+                    ps.setObject(4, subDO.getSplitAmountFen());
+                    ps.setObject(5, subDO.getCreateTime());
+                    ps.setObject(6, subDO.getUpdateTime());
                 }
 
                 @Override
@@ -390,6 +396,72 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
+    // ==================== 退款操作 ====================
+
+    @Override
+    public boolean batchSaveOrderRefundSplitSub(List<ReconOrderRefundSplitSubDO> refundSplitSubDOs) {
+        if (refundSplitSubDOs == null || refundSplitSubDOs.isEmpty()) {
+            return true;
+        }
+
+        try {
+            String tableName = properties.getTablePrefix() + "order_refund_split_sub";
+            String sql = dialectFactory.getDialect().getInsertOrderRefundSplitSubSql(tableName);
+
+            jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    ReconOrderRefundSplitSubDO subDO = refundSplitSubDOs.get(i);
+                    ps.setString(1, subDO.getOrderNo());
+                    ps.setString(2, subDO.getMerchantId());
+                    ps.setBigDecimal(3, subDO.getRefundSplitAmount());
+                    ps.setObject(4, subDO.getRefundSplitAmountFen());
+                    ps.setObject(5, subDO.getCreateTime());
+                    ps.setObject(6, subDO.getUpdateTime());
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return refundSplitSubDOs.size();
+                }
+            });
+            return true;
+        } catch (Exception e) {
+            log.error("批量保存退款分账子记录失败", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateReconRefundStatus(String orderNo, int refundStatus, BigDecimal refundAmount,
+            LocalDateTime refundTime) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_main";
+            String sql = "UPDATE " + tableName
+                    + " SET refund_status = ?, refund_amount = ?, refund_amount_fen = ?, refund_time = ?, update_time = ? WHERE order_no = ?";
+            Long refundAmountFen = refundAmount != null ? refundAmount.multiply(new BigDecimal("100")).longValue()
+                    : null;
+            int rows = jdbcTemplate.update(sql, refundStatus, refundAmount, refundAmountFen, refundTime,
+                    LocalDateTime.now(), orderNo);
+            return rows > 0;
+        } catch (Exception e) {
+            log.error("更新退款对账状态失败，订单号: {}", orderNo, e);
+            return false;
+        }
+    }
+
+    @Override
+    public List<ReconOrderRefundSplitSubDO> getOrderRefundSplitSubByOrderNo(String orderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_refund_split_sub";
+            String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
+            return jdbcTemplate.query(sql, new OrderRefundSplitSubRowMapper(), orderNo);
+        } catch (Exception e) {
+            log.error("查询退款分账子记录失败，订单号: {}", orderNo, e);
+            return null;
+        }
+    }
+
     // ==================== 对账规则操作 ====================
 
     @Override
@@ -510,12 +582,20 @@ public class JdbcReconRepository implements ReconRepository {
             mainDO.setOrderNo(rs.getString("order_no"));
             mainDO.setMerchantId(rs.getString("merchant_id"));
             mainDO.setPayAmount(rs.getBigDecimal("pay_amount"));
+            mainDO.setPayAmountFen(rs.getObject("pay_amount_fen", Long.class));
             mainDO.setPlatformIncome(rs.getBigDecimal("platform_income"));
+            mainDO.setPlatformIncomeFen(rs.getObject("platform_income_fen", Long.class));
             mainDO.setPayFee(rs.getBigDecimal("pay_fee"));
+            mainDO.setPayFeeFen(rs.getObject("pay_fee_fen", Long.class));
             mainDO.setSplitTotalAmount(rs.getBigDecimal("split_total_amount"));
+            mainDO.setSplitTotalAmountFen(rs.getObject("split_total_amount_fen", Long.class));
             mainDO.setReconStatus(rs.getInt("recon_status"));
             mainDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
             mainDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            mainDO.setRefundAmount(rs.getBigDecimal("refund_amount"));
+            mainDO.setRefundAmountFen(rs.getObject("refund_amount_fen", Long.class));
+            mainDO.setRefundStatus(rs.getInt("refund_status"));
+            mainDO.setRefundTime(rs.getObject("refund_time", LocalDateTime.class));
             return mainDO;
         }
     }
@@ -531,6 +611,25 @@ public class JdbcReconRepository implements ReconRepository {
             subDO.setOrderNo(rs.getString("order_no"));
             subDO.setMerchantId(rs.getString("merchant_id"));
             subDO.setSplitAmount(rs.getBigDecimal("split_amount"));
+            subDO.setSplitAmountFen(rs.getObject("split_amount_fen", Long.class));
+            subDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            subDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return subDO;
+        }
+    }
+
+    /**
+     * 退款分账子记录行映射器
+     */
+    private static class OrderRefundSplitSubRowMapper implements RowMapper<ReconOrderRefundSplitSubDO> {
+        @Override
+        public ReconOrderRefundSplitSubDO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ReconOrderRefundSplitSubDO subDO = new ReconOrderRefundSplitSubDO();
+            subDO.setId(rs.getLong("id"));
+            subDO.setOrderNo(rs.getString("order_no"));
+            subDO.setMerchantId(rs.getString("merchant_id"));
+            subDO.setRefundSplitAmount(rs.getBigDecimal("refund_split_amount"));
+            subDO.setRefundSplitAmountFen(rs.getObject("refund_split_amount_fen", Long.class));
             subDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
             subDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
             return subDO;

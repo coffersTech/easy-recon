@@ -30,8 +30,8 @@ public class EasyReconTemplate {
     /**
      * 执行实时对账
      *
-     * @param orderMainDO   订单主记录
-     * @param splitSubDOs   分账子记录列表
+     * @param orderMainDO 订单主记录
+     * @param splitSubDOs 分账子记录列表
      * @return 对账结果
      */
     public boolean doRealtimeRecon(ReconOrderMainDO orderMainDO, List<ReconOrderSplitSubDO> splitSubDOs) {
@@ -41,11 +41,12 @@ public class EasyReconTemplate {
     /**
      * 异步执行实时对账
      *
-     * @param orderMainDO   订单主记录
-     * @param splitSubDOs   分账子记录列表
+     * @param orderMainDO 订单主记录
+     * @param splitSubDOs 分账子记录列表
      * @return 异步对账结果
      */
-    public CompletableFuture<Boolean> doRealtimeReconAsync(ReconOrderMainDO orderMainDO, List<ReconOrderSplitSubDO> splitSubDOs) {
+    public CompletableFuture<Boolean> doRealtimeReconAsync(ReconOrderMainDO orderMainDO,
+            List<ReconOrderSplitSubDO> splitSubDOs) {
         return realtimeReconService.doRealtimeReconAsync(orderMainDO, splitSubDOs);
     }
 
@@ -57,6 +58,33 @@ public class EasyReconTemplate {
      */
     public boolean doTimingRecon(String dateStr) {
         return timingReconService.doTimingRecon(dateStr);
+    }
+
+    /**
+     * 执行退款对账
+     *
+     * @param orderNo      订单号
+     * @param refundAmount 退款金额
+     * @param refundTime   退款时间
+     * @param refundStatus 退款状态
+     * @param splitDetails 退款分账详情
+     * @return 对账结果
+     */
+    public boolean reconRefund(String orderNo, java.math.BigDecimal refundAmount, java.time.LocalDateTime refundTime,
+            int refundStatus, java.util.Map<String, java.math.BigDecimal> splitDetails) {
+        tech.coffers.recon.api.result.ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount,
+                refundTime, refundStatus, splitDetails);
+        return result.isSuccess();
+    }
+
+    /**
+     * 执行定时退款对账
+     *
+     * @param dateStr 对账日期（yyyy-MM-dd）
+     * @return 对账结果
+     */
+    public boolean doTimingRefundRecon(String dateStr) {
+        return timingReconService.doTimingRefundRecon(dateStr);
     }
 
 }

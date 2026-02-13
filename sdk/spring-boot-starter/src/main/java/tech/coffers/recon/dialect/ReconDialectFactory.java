@@ -31,6 +31,8 @@ public class ReconDialectFactory {
 
     /**
      * 获取数据库方言
+     *
+     * @return 数据库方言
      */
     public ReconDatabaseDialect getDialect() {
         return dialect;

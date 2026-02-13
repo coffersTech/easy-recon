@@ -63,6 +63,79 @@ SDK 需要特定的数据库表才能正常工作。迁移脚本位于 `src/main
 *   `easy_recon_notify_log`: 通知日志表。
 *   `easy_recon_rule`: 对账、状态和自定义规则表。
 
+## API 参考
+
+### EasyReconTemplate
+
+`EasyReconTemplate` 是 SDK 的核心入口类，提供了以下主要方法：
+
+#### 1. 实时对账
+
+用于在业务流程中同步触发对账逻辑。
+
+```java
+/**
+ * 执行实时对账
+ *
+ * @param orderMainDO 订单主记录（包含支付金额、手续费、平台收入等）
+ * @param splitSubDOs 分账子记录列表（可选，用于分账对账）
+ * @return 对账结果 (true: 成功, false: 失败)
+ */
+boolean doRealtimeRecon(ReconOrderMainDO orderMainDO, List<ReconOrderSplitSubDO> splitSubDOs);
+```
+
+**示例：**
+
+```java
+ReconOrderMainDO mainDO = new ReconOrderMainDO();
+mainDO.setOrderNo("ORD20230101001");
+mainDO.setPayAmount(new BigDecimal("100.00"));
+// ... 设置其他必要字段
+
+List<ReconOrderSplitSubDO> splitList = new ArrayList<>();
+// ... 添加分账记录
+
+boolean success = easyReconTemplate.doRealtimeRecon(mainDO, splitList);
+```
+
+#### 2. 异步实时对账
+
+用于不阻塞主业务流程的对账操作。
+
+```java
+CompletableFuture<Boolean> doRealtimeReconAsync(ReconOrderMainDO orderMainDO, List<ReconOrderSplitSubDO> splitSubDOs);
+```
+
+#### 3. 退款对账
+
+用于处理退款业务的对账。
+
+```java
+/**
+ * 执行退款对账
+ *
+ * @param orderNo      原订单号
+ * @param refundAmount 退款金额
+ * @param refundTime   退款时间
+ * @param refundStatus 退款状态 (0=未退款, 1=部分退款, 2=全额退款)
+ * @param splitDetails 退款分账详情 (可选)
+ * @return 对账结果 (true: 成功, false: 失败)
+ */
+boolean reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime, int refundStatus, Map<String, BigDecimal> splitDetails);
+```
+
+#### 4. 定时对账触发
+
+手动触发指定日期的定时对账任务（通常由定时任务自动调用）。
+
+```java
+// 触发交易对账
+boolean doTimingRecon(String dateStr); // dateStr 格式: yyyy-MM-dd
+
+// 触发退款对账
+boolean doTimingRefundRecon(String dateStr);
+```
+
 ## 使用方法
 
 注入 `EasyReconTemplate` 以使用对账服务：

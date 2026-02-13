@@ -237,6 +237,20 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
+    @Override
+    public Integer getReconStatus(String orderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_main";
+            String sql = "SELECT recon_status FROM " + tableName + " WHERE order_no = ?";
+            return jdbcTemplate.queryForObject(sql, Integer.class, orderNo);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            return null;
+        } catch (Exception e) {
+            log.error("查询对账状态失败，订单号: {}", orderNo, e);
+            return null;
+        }
+    }
+
     // ==================== 新增查询方法 ====================
 
     @Override
@@ -385,13 +399,48 @@ public class JdbcReconRepository implements ReconRepository {
     }
 
     @Override
-    public ReconExceptionDO getExceptionByOrderNo(String orderNo) {
+    public List<ReconExceptionDO> getExceptionsByOrderNo(String orderNo) {
         try {
             String tableName = properties.getTablePrefix() + "exception";
-            String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
-            return jdbcTemplate.queryForObject(sql, new ExceptionRowMapper(), orderNo);
+            String sql = "SELECT * FROM " + tableName + " WHERE order_no = ? ORDER BY create_time DESC";
+            return jdbcTemplate.query(sql, new ExceptionRowMapper(), orderNo);
         } catch (Exception e) {
-            log.error("根据订单号查询对账异常记录失败，订单号: {}", orderNo, e);
+            log.error("根据订单号查询对账异常记录列表失败，订单号: {}", orderNo, e);
+            return null;
+        }
+    }
+
+    // ==================== 统计报表 ====================
+
+    @Override
+    public ReconSummaryDO getReconSummary(String dateStr) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_main";
+            // 聚合查询
+            String sql = "SELECT " +
+                    "COUNT(*) as total_orders, " +
+                    "SUM(CASE WHEN recon_status = 1 THEN 1 ELSE 0 END) as success_count, " +
+                    "SUM(CASE WHEN recon_status = 2 THEN 1 ELSE 0 END) as fail_count, " +
+                    "SUM(CASE WHEN recon_status = 0 THEN 1 ELSE 0 END) as init_count, " +
+                    "SUM(pay_amount) as total_amount " +
+                    "FROM " + tableName + " " +
+                    "WHERE DATE(create_time) = ?";
+
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                ReconSummaryDO summary = new ReconSummaryDO();
+                summary.setSummaryDate(java.time.LocalDate.parse(dateStr));
+                summary.setTotalOrders(rs.getInt("total_orders"));
+                summary.setSuccessCount(rs.getInt("success_count"));
+                summary.setFailCount(rs.getInt("fail_count"));
+                summary.setInitCount(rs.getInt("init_count"));
+                summary.setTotalAmount(rs.getBigDecimal("total_amount"));
+                if (summary.getTotalAmount() == null) {
+                    summary.setTotalAmount(BigDecimal.ZERO);
+                }
+                return summary;
+            }, dateStr);
+        } catch (Exception e) {
+            log.error("查询对账统计数据失败，日期: {}", dateStr, e);
             return null;
         }
     }

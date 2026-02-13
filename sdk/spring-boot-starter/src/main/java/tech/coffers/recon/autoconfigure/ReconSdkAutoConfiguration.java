@@ -5,8 +5,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-
-import tech.coffers.recon.core.EasyReconTemplate;
+import tech.coffers.recon.api.EasyReconApi;
 import tech.coffers.recon.core.service.AlarmService;
 import tech.coffers.recon.core.service.ExceptionRecordService;
 import tech.coffers.recon.core.service.RealtimeReconService;
@@ -168,17 +167,18 @@ public class ReconSdkAutoConfiguration {
     }
 
     /**
-     * 创建对账模板
+     * 创建对账 API 入口
      *
      * @param realtimeReconService 实时对账服务
      * @param timingReconService   定时对账服务
-     * @return 对账模板
+     * @param reconRepository      对账存储库
+     * @return 对账 API
      */
     @Bean
-    @ConditionalOnMissingBean(EasyReconTemplate.class)
-    public EasyReconTemplate easyReconTemplate(RealtimeReconService realtimeReconService,
-            TimingReconService timingReconService) {
-        return new EasyReconTemplate(realtimeReconService, timingReconService);
+    @ConditionalOnMissingBean(EasyReconApi.class)
+    public EasyReconApi easyReconApi(RealtimeReconService realtimeReconService,
+            TimingReconService timingReconService, ReconRepository reconRepository) {
+        return new EasyReconApi(realtimeReconService, timingReconService, reconRepository);
     }
 
 }

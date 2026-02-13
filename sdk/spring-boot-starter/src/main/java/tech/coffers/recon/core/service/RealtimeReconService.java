@@ -131,7 +131,7 @@ public class RealtimeReconService {
     }
 
     /**
-     * (Restored for EasyReconTemplate compatibility)
+     * (Delegated from EasyReconApi)
      */
     @Transactional(rollbackFor = Exception.class)
     public boolean doRealtimeRecon(ReconOrderMainDO orderMainDO, List<ReconOrderSplitSubDO> splitSubDOs) {
@@ -246,6 +246,57 @@ public class RealtimeReconService {
             int refundStatus, Map<String, BigDecimal> splitDetails) {
         return CompletableFuture.supplyAsync(
                 () -> reconRefund(orderNo, refundAmount, refundTime, refundStatus, splitDetails), executorService);
+    }
+
+    /**
+     * 重试对账
+     *
+     * @param orderNo 订单号
+     * @return 重试结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean retryRecon(String orderNo) {
+        try {
+            // 1. 查询订单主记录
+            ReconOrderMainDO orderMainDO = reconRepository.getOrderMainByOrderNo(orderNo);
+            if (orderMainDO == null) {
+                recordException(orderNo, "UNKNOWN", "重试对账失败：订单不存在", 0);
+                return false;
+            }
+
+            // 2. 检查状态：只有 失败(2) 或 异常(0-初始态，视情况而定) 可以重试
+            // 这里假设 1=成功, 2=失败, 0=初始
+            if (orderMainDO.getReconStatus() == 1) {
+                return true; // 已经成功的直接返回成功
+            }
+
+            // 3. 获取分账子记录
+            List<ReconOrderSplitSubDO> splitSubDOs = reconRepository.getOrderSplitSubByOrderNo(orderNo);
+
+            // 4. 执行校验逻辑 (复用 TimingReconService 的逻辑，或者提取公共逻辑)
+            // 这里为了简单，直接内嵌校验逻辑
+            BigDecimal splitTotal = BigDecimal.ZERO;
+            if (splitSubDOs != null) {
+                for (ReconOrderSplitSubDO sub : splitSubDOs) {
+                    splitTotal = splitTotal.add(sub.getSplitAmount());
+                }
+            }
+            BigDecimal calcAmount = splitTotal.add(orderMainDO.getPlatformIncome()).add(orderMainDO.getPayFee());
+
+            if (orderMainDO.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
+                recordException(orderNo, orderMainDO.getMerchantId(), "重试对账失败：金额校验不一致", 4);
+                reconRepository.updateReconStatus(orderNo, 2); // 保持/更新为失败
+                return false;
+            }
+
+            // 5. 更新状态为成功
+            return reconRepository.updateReconStatus(orderNo, 1);
+
+        } catch (Exception e) {
+            log.error("重试对账异常", e);
+            recordException(orderNo, "UNKNOWN", "重试对账异常: " + e.getMessage(), 5);
+            return false;
+        }
     }
 
     private void recordException(String orderNo, String merchantId, String msg, int step) {

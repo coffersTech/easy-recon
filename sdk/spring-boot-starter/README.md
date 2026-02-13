@@ -65,9 +65,9 @@ SDK 需要特定的数据库表才能正常工作。迁移脚本位于 `src/main
 
 ## API 参考
 
-### EasyReconTemplate
+### EasyReconApi
 
-`EasyReconTemplate` 是 SDK 的核心入口类，提供了以下主要方法：
+`EasyReconApi` 是 SDK 的核心入口类，提供了对账和查询的主要方法：
 
 #### 1. 实时对账
 
@@ -95,7 +95,7 @@ mainDO.setPayAmount(new BigDecimal("100.00"));
 List<ReconOrderSplitSubDO> splitList = new ArrayList<>();
 // ... 添加分账记录
 
-boolean success = easyReconTemplate.doRealtimeRecon(mainDO, splitList);
+boolean success = easyReconApi.doRealtimeRecon(mainDO, splitList);
 ```
 
 #### 2. 异步实时对账
@@ -144,15 +144,36 @@ boolean doTimingRecon(String dateStr); // dateStr 格式: yyyy-MM-dd
 boolean doTimingRefundRecon(String dateStr);
 ```
 
+#### 6. 查询与重试
+
+SDK 提供了对账状态、异常信息、统计数据的查询接口，以及手动重试功能。
+
+```java
+// 查询对账状态
+Integer getReconStatus(String orderNo);
+
+// 查询订单主记录
+ReconOrderMainDO getOrderMain(String orderNo);
+
+// 查询对账异常历史
+List<ReconExceptionDO> getReconExceptions(String orderNo);
+
+// 获取每日对账统计
+ReconSummaryDO getReconSummary(String dateStr); // dateStr: yyyy-MM-dd
+
+// 手动重试对账 (仅针对失败订单)
+boolean retryRecon(String orderNo);
+```
+
 ## 使用方法
 
-### 1. 注入 SDK 模板
+### 1. 注入 SDK API
 
-在您的 Service 或 Component 中注入 `EasyReconTemplate`：
+在您的 Service 或 Component 中注入 `EasyReconApi`：
 
 ```java
 @Autowired
-private EasyReconTemplate easyReconTemplate;
+private EasyReconApi easyReconApi;
 ```
 
 ### 2. 实时对账（同步）
@@ -172,7 +193,7 @@ public void handlePaymentCallback(PaymentNotify notify) {
     // ...
 
     // 3. 执行对账
-    boolean success = easyReconTemplate.doRealtimeRecon(mainDO, splitDOs);
+    boolean success = easyReconApi.doRealtimeRecon(mainDO, splitDOs);
     
     if (!success) {
         log.error("订单 {} 对账失败", notify.getOrderNo());
@@ -190,7 +211,7 @@ public void handlePaymentCallbackAsync(PaymentNotify notify) {
     // ... 构建对象 (同上)
 
     // 执行异步对账
-    easyReconTemplate.doRealtimeReconAsync(mainDO, splitDOs)
+    easyReconApi.doRealtimeReconAsync(mainDO, splitDOs)
         .thenAccept(result -> {
             if (result) {
                 log.info("异步对账成功");
@@ -212,7 +233,7 @@ public void handleRefund(String orderNo, BigDecimal refundAmount) {
     splitDetails.put("MCH001", new BigDecimal("10.00"));
 
     // 执行退款对账
-    boolean success = easyReconTemplate.reconRefund(
+    boolean success = easyReconApi.reconRefund(
         orderNo, 
         refundAmount, 
         LocalDateTime.now(), 
@@ -224,10 +245,35 @@ public void handleRefund(String orderNo, BigDecimal refundAmount) {
 public void handleRefundAsync(String orderNo, BigDecimal refundAmount) {
     // ... 构建参数
 
-    easyReconTemplate.reconRefundAsync(orderNo, refundAmount, LocalDateTime.now(), 1, splitDetails)
+    easyReconApi.reconRefundAsync(orderNo, refundAmount, LocalDateTime.now(), 1, splitDetails)
         .thenAccept(result -> {
             // 处理异步结果
         });
+}
+```
+
+### 6. 查询与重试
+
+```java
+public void queryAndRetry(String orderNo) {
+    // 1. 查询状态
+    Integer status = easyReconApi.getReconStatus(orderNo);
+    
+    // 2. 如果失败，查询异常原因
+    if (status != null && status == 2) {
+        List<ReconExceptionDO> exceptions = easyReconApi.getReconExceptions(orderNo);
+        log.error("订单 {} 对账失败，异常记录: {}", orderNo, exceptions);
+        
+        // 3. 尝试重试
+        boolean retrySuccess = easyReconApi.retryRecon(orderNo);
+        if (retrySuccess) {
+            log.info("订单 {} 重试成功", orderNo);
+        }
+    }
+    
+    // 4. 获取昨日统计
+    ReconSummaryDO summary = easyReconApi.getReconSummary(LocalDate.now().minusDays(1).toString());
+    log.info("昨日对账统计: {}", summary);
 }
 ```
 

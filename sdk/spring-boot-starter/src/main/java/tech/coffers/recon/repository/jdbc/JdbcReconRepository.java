@@ -620,6 +620,137 @@ public class JdbcReconRepository implements ReconRepository {
 
     // ==================== 行映射器 ====================
 
+    @Override
+    public long countOrderMainByMerchantId(String merchantId, String startDate, String endDate, Integer reconStatus) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_main";
+            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE merchant_id = ?");
+
+            // 添加日期条件
+            if (startDate != null && !startDate.isEmpty()) {
+                sql.append(" AND DATE(create_time) >= ?");
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                sql.append(" AND DATE(create_time) <= ?");
+            }
+
+            // 添加对账状态条件
+            if (reconStatus != null) {
+                sql.append(" AND recon_status = ?");
+            }
+
+            // 构建参数
+            java.util.List<Object> params = new java.util.ArrayList<>();
+            params.add(merchantId);
+            if (startDate != null && !startDate.isEmpty()) {
+                params.add(startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                params.add(endDate);
+            }
+            if (reconStatus != null) {
+                params.add(reconStatus);
+            }
+
+            Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            log.error("统计商户对账订单数量失败", e);
+            return 0;
+        }
+    }
+
+    @Override
+    public long countOrderMainByDate(String dateStr, Integer reconStatus) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_main";
+            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE DATE(create_time) = ?");
+
+            // 添加对账状态条件
+            if (reconStatus != null) {
+                sql.append(" AND recon_status = ?");
+            }
+
+            // 构建参数
+            java.util.List<Object> params = new java.util.ArrayList<>();
+            params.add(dateStr);
+            if (reconStatus != null) {
+                params.add(reconStatus);
+            }
+
+            Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            log.error("统计日期对账订单数量失败", e);
+            return 0;
+        }
+    }
+
+    @Override
+    public long countExceptionRecords(String merchantId, String startDate, String endDate, Integer exceptionStep) {
+        try {
+            String tableName = properties.getTablePrefix() + "exception";
+            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM " + tableName);
+
+            // 添加条件
+            boolean hasWhere = false;
+            if (merchantId != null && !merchantId.isEmpty()) {
+                sql.append(" WHERE merchant_id = ?");
+                hasWhere = true;
+            }
+
+            if (startDate != null && !startDate.isEmpty()) {
+                if (hasWhere) {
+                    sql.append(" AND");
+                } else {
+                    sql.append(" WHERE");
+                    hasWhere = true;
+                }
+                sql.append(" DATE(create_time) >= ?");
+            }
+
+            if (endDate != null && !endDate.isEmpty()) {
+                if (hasWhere) {
+                    sql.append(" AND");
+                } else {
+                    sql.append(" WHERE");
+                    hasWhere = true;
+                }
+                sql.append(" DATE(create_time) <= ?");
+            }
+
+            if (exceptionStep != null) {
+                if (hasWhere) {
+                    sql.append(" AND");
+                } else {
+                    sql.append(" WHERE");
+                }
+                sql.append(" exception_step = ?");
+            }
+
+            // 构建参数
+            java.util.List<Object> params = new java.util.ArrayList<>();
+            if (merchantId != null && !merchantId.isEmpty()) {
+                params.add(merchantId);
+            }
+            if (startDate != null && !startDate.isEmpty()) {
+                params.add(startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                params.add(endDate);
+            }
+            if (exceptionStep != null) {
+                params.add(exceptionStep);
+            }
+
+            Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            log.error("统计异常记录数量失败", e);
+            return 0;
+        }
+    }
+
     /**
      * 订单主记录行映射器
      */

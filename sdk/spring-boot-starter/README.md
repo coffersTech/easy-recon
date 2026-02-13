@@ -163,6 +163,15 @@ ReconSummaryDO getReconSummary(String dateStr); // dateStr: yyyy-MM-dd
 
 // 手动重试对账 (仅针对失败订单)
 boolean retryRecon(String orderNo);
+
+// 分页查询商户对账订单
+PageResult<ReconOrderMainDO> listOrdersByMerchant(String merchantId, String startDate, String endDate, Integer reconStatus, int page, int size);
+
+// 分页查询日期对账订单
+PageResult<ReconOrderMainDO> listOrdersByDate(String dateStr, Integer reconStatus, int page, int size);
+
+// 分页查询异常记录
+PageResult<ReconExceptionDO> listExceptions(String merchantId, String startDate, String endDate, Integer exceptionStep, int page, int size);
 ```
 
 ## 使用方法
@@ -274,6 +283,17 @@ public void queryAndRetry(String orderNo) {
     // 4. 获取昨日统计
     ReconSummaryDO summary = easyReconApi.getReconSummary(LocalDate.now().minusDays(1).toString());
     log.info("昨日对账统计: {}", summary);
+}
+```
+
+### 7. 分页查询
+
+```java
+public void listOrders() {
+    int page = 1;
+    int size = 10;
+    PageResult<ReconOrderMainDO> result = easyReconApi.listOrdersByMerchant("M001", "2023-10-01", "2023-10-31", null, page, size);
+    log.info("总记录数: {}, 当前页数据: {}", result.getTotal(), result.getList());
 }
 ```
 

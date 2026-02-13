@@ -247,4 +247,35 @@ public interface ReconRepository {
          */
         ReconSummaryDO getReconSummary(String dateStr);
 
+        /**
+         * 根据商户ID统计对账订单数量
+         *
+         * @param merchantId  商户ID
+         * @param startDate   开始日期
+         * @param endDate     结束日期
+         * @param reconStatus 对账状态
+         * @return 订单数量
+         */
+        long countOrderMainByMerchantId(String merchantId, String startDate, String endDate, Integer reconStatus);
+
+        /**
+         * 根据日期统计对账订单数量
+         *
+         * @param dateStr     日期
+         * @param reconStatus 对账状态
+         * @return 订单数量
+         */
+        long countOrderMainByDate(String dateStr, Integer reconStatus);
+
+        /**
+         * 统计异常记录数量
+         *
+         * @param merchantId    商户ID
+         * @param startDate     开始日期
+         * @param endDate       结束日期
+         * @param exceptionStep 异常步骤
+         * @return 异常记录数量
+         */
+        long countExceptionRecords(String merchantId, String startDate, String endDate, Integer exceptionStep);
+
 }

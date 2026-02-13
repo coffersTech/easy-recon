@@ -1,5 +1,6 @@
 package tech.coffers.recon.api;
 
+import tech.coffers.recon.api.result.PageResult;
 import tech.coffers.recon.api.result.ReconResult;
 import tech.coffers.recon.core.service.RealtimeReconService;
 import tech.coffers.recon.core.service.TimingReconService;
@@ -165,13 +166,59 @@ public class EasyReconApi {
     }
 
     /**
-     * 手动重试对账
+     * 分页查询商户对账订单
      *
-     * @param orderNo 订单号
-     * @return 重试结果
+     * @param merchantId  商户ID
+     * @param startDate   开始日期 (yyyy-MM-dd)
+     * @param endDate     结束日期 (yyyy-MM-dd)
+     * @param reconStatus 对账状态
+     * @param page        页码 (1-based)
+     * @param size        每页大小
+     * @return 分页结果
      */
-    public boolean retryRecon(String orderNo) {
-        return realtimeReconService.retryRecon(orderNo);
+    public PageResult<ReconOrderMainDO> listOrdersByMerchant(String merchantId, String startDate, String endDate,
+            Integer reconStatus, int page, int size) {
+        int offset = (page - 1) * size;
+        List<ReconOrderMainDO> list = reconRepository.getOrderMainByMerchantId(merchantId, startDate, endDate,
+                reconStatus, offset, size);
+        long total = reconRepository.countOrderMainByMerchantId(merchantId, startDate, endDate, reconStatus);
+        return PageResult.of(list, total, page, size);
+    }
+
+    /**
+     * 分页查询日期对账订单
+     *
+     * @param dateStr     日期 (yyyy-MM-dd)
+     * @param reconStatus 对账状态
+     * @param page        页码 (1-based)
+     * @param size        每页大小
+     * @return 分页结果
+     */
+    public PageResult<ReconOrderMainDO> listOrdersByDate(String dateStr, Integer reconStatus, int page, int size) {
+        int offset = (page - 1) * size;
+        List<ReconOrderMainDO> list = reconRepository.getOrderMainByDate(dateStr, reconStatus, offset, size);
+        long total = reconRepository.countOrderMainByDate(dateStr, reconStatus);
+        return PageResult.of(list, total, page, size);
+    }
+
+    /**
+     * 分页查询异常记录
+     *
+     * @param merchantId    商户ID
+     * @param startDate     开始日期
+     * @param endDate       结束日期
+     * @param exceptionStep 异常步骤
+     * @param page          页码 (1-based)
+     * @param size          每页大小
+     * @return 分页结果
+     */
+    public PageResult<ReconExceptionDO> listExceptions(String merchantId, String startDate, String endDate,
+            Integer exceptionStep, int page, int size) {
+        int offset = (page - 1) * size;
+        List<ReconExceptionDO> list = reconRepository.getExceptionRecords(merchantId, startDate, endDate, exceptionStep,
+                offset, size);
+        long total = reconRepository.countExceptionRecords(merchantId, startDate, endDate, exceptionStep);
+        return PageResult.of(list, total, page, size);
     }
 
 }

@@ -2,6 +2,7 @@ package tech.coffers.recon.api;
 
 import tech.coffers.recon.api.result.PageResult;
 import tech.coffers.recon.api.result.ReconResult;
+import tech.coffers.recon.api.enums.ReconStatusEnum;
 import tech.coffers.recon.core.service.RealtimeReconService;
 import tech.coffers.recon.core.service.TimingReconService;
 import tech.coffers.recon.entity.ReconExceptionDO;
@@ -131,8 +132,9 @@ public class EasyReconApi {
      * @param orderNo 订单号
      * @return 对账状态 (可能为 null)
      */
-    public Integer getReconStatus(String orderNo) {
-        return reconRepository.getReconStatus(orderNo);
+    public ReconStatusEnum getReconStatus(String orderNo) {
+        Integer code = reconRepository.getReconStatus(orderNo);
+        return ReconStatusEnum.fromCode(code);
     }
 
     /**
@@ -174,7 +176,8 @@ public class EasyReconApi {
      * @param size        每页大小
      * @return 分页结果
      */
-    public PageResult<ReconOrderMainDO> listOrdersByDate(String dateStr, Integer reconStatus, int page, int size) {
+    public PageResult<ReconOrderMainDO> listOrdersByDate(String dateStr, ReconStatusEnum reconStatus, int page,
+            int size) {
         int offset = (page - 1) * size;
         List<ReconOrderMainDO> list = reconRepository.getOrderMainByDate(dateStr, reconStatus, offset, size);
         long total = reconRepository.countOrderMainByDate(dateStr, reconStatus);

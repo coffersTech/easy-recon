@@ -1,6 +1,7 @@
 package tech.coffers.recon.entity;
 
 import lombok.Data;
+import tech.coffers.recon.api.enums.ReconStatusEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -71,6 +72,15 @@ public class ReconOrderMainDO {
      * 对账状态：0=待对账，1=成功，2=失败
      */
     private Integer reconStatus;
+
+    /**
+     * 获取对账状态枚举
+     *
+     * @return 对账状态枚举
+     */
+    public ReconStatusEnum getReconStatusEnum() {
+        return ReconStatusEnum.fromCode(reconStatus);
+    }
 
     /**
      * 创建时间

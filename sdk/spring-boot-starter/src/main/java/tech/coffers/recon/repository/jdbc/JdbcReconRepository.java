@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
+import tech.coffers.recon.api.enums.ReconStatusEnum;
 import tech.coffers.recon.dialect.ReconDialectFactory;
 import tech.coffers.recon.entity.*;
 import tech.coffers.recon.repository.ReconRepository;
@@ -14,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -224,11 +226,11 @@ public class JdbcReconRepository implements ReconRepository {
     }
 
     @Override
-    public boolean updateReconStatus(String orderNo, int reconStatus) {
+    public boolean updateReconStatus(String orderNo, ReconStatusEnum reconStatus) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
             String sql = "UPDATE " + tableName + " SET recon_status = ?, update_time = ? WHERE order_no = ?";
-            int rows = jdbcTemplate.update(sql, reconStatus, LocalDateTime.now(), orderNo);
+            int rows = jdbcTemplate.update(sql, reconStatus.getCode(), LocalDateTime.now(), orderNo);
             return rows > 0;
         } catch (Exception e) {
             log.error("更新对账状态失败，订单号: {}", orderNo, e);
@@ -253,25 +255,24 @@ public class JdbcReconRepository implements ReconRepository {
     // ==================== 新增查询方法 ====================
 
     @Override
-    public List<ReconOrderMainDO> getOrderMainByDate(String dateStr, Integer reconStatus, int offset, int limit) {
+    public List<ReconOrderMainDO> getOrderMainByDate(String dateStr, ReconStatusEnum reconStatus, int offset,
+            int limit) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
             StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE DATE(create_time) = ?");
 
+            // 构建参数
+            List<Object> params = new ArrayList<>();
+            params.add(dateStr);
+
             // 添加对账状态条件
             if (reconStatus != null) {
                 sql.append(" AND recon_status = ?");
+                params.add(reconStatus.getCode());
             }
 
             // 添加排序和分页
             sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
-
-            // 构建参数
-            java.util.List<Object> params = new java.util.ArrayList<>();
-            params.add(dateStr);
-            if (reconStatus != null) {
-                params.add(reconStatus);
-            }
             params.add(limit);
             params.add(offset);
 
@@ -564,21 +565,19 @@ public class JdbcReconRepository implements ReconRepository {
     // ==================== 行映射器 ====================
 
     @Override
-    public long countOrderMainByDate(String dateStr, Integer reconStatus) {
+    public long countOrderMainByDate(String dateStr, ReconStatusEnum reconStatus) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
             StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE DATE(create_time) = ?");
 
+            // 构建参数
+            List<Object> params = new ArrayList<>();
+            params.add(dateStr);
+
             // 添加对账状态条件
             if (reconStatus != null) {
                 sql.append(" AND recon_status = ?");
-            }
-
-            // 构建参数
-            java.util.List<Object> params = new java.util.ArrayList<>();
-            params.add(dateStr);
-            if (reconStatus != null) {
-                params.add(reconStatus);
+                params.add(reconStatus.getCode());
             }
 
             Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());

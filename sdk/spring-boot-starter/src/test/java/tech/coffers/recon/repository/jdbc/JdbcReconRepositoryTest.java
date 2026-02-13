@@ -7,6 +7,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
+import tech.coffers.recon.autoconfigure.ReconSdkProperties;
 import tech.coffers.recon.dialect.MySqlReconDialect;
 import tech.coffers.recon.dialect.ReconDialectFactory;
 import tech.coffers.recon.entity.ReconOrderMainDO;

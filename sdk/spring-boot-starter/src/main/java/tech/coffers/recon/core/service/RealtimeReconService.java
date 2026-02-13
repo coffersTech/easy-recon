@@ -6,6 +6,7 @@ import tech.coffers.recon.autoconfigure.ReconSdkProperties;
 import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
 import tech.coffers.recon.entity.ReconOrderSplitSubDO;
+import tech.coffers.recon.api.enums.ReconStatusEnum;
 import tech.coffers.recon.repository.ReconRepository;
 
 import java.math.BigDecimal;
@@ -100,7 +101,7 @@ public class RealtimeReconService {
             orderMainDO.setPlatformIncome(platformIncome);
             orderMainDO.setPayFee(payFee);
             orderMainDO.setSplitTotalAmount(splitTotal);
-            orderMainDO.setReconStatus(1); // 成功
+            orderMainDO.setReconStatus(ReconStatusEnum.SUCCESS.getCode()); // 成功
             orderMainDO.setCreateTime(LocalDateTime.now());
             orderMainDO.setUpdateTime(LocalDateTime.now());
             reconRepository.saveOrderMain(orderMainDO);
@@ -144,7 +145,7 @@ public class RealtimeReconService {
                 if (!subSaved)
                     return false;
             }
-            reconRepository.updateReconStatus(orderMainDO.getOrderNo(), 1);
+            reconRepository.updateReconStatus(orderMainDO.getOrderNo(), ReconStatusEnum.SUCCESS);
             return true;
         } catch (Exception e) {
             alarmService.sendReconAlarm(orderMainDO.getOrderNo(), "SELF",
@@ -284,12 +285,12 @@ public class RealtimeReconService {
 
             if (orderMainDO.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
                 recordException(orderNo, "SELF", "重试对账失败：金额校验不一致", 4);
-                reconRepository.updateReconStatus(orderNo, 2); // 保持/更新为失败
+                reconRepository.updateReconStatus(orderNo, ReconStatusEnum.FAILURE); // 保持/更新为失败
                 return false;
             }
 
             // 5. 更新状态为成功
-            return reconRepository.updateReconStatus(orderNo, 1);
+            return reconRepository.updateReconStatus(orderNo, ReconStatusEnum.SUCCESS);
 
         } catch (Exception e) {
             log.error("重试对账异常", e);

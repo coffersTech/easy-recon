@@ -1,6 +1,7 @@
 package tech.coffers.recon.core.service;
 
 import tech.coffers.recon.entity.ReconOrderMainDO;
+import tech.coffers.recon.api.enums.ReconStatusEnum;
 import tech.coffers.recon.repository.ReconRepository;
 
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
@@ -92,12 +93,12 @@ public class TimingReconService {
             if (order.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
                 // 金额校验失败
                 recordException(order.getOrderNo(), "SELF", "定时对账失败：金额校验不一致", 4);
-                reconRepository.updateReconStatus(order.getOrderNo(), 2); // 2: 失败
+                reconRepository.updateReconStatus(order.getOrderNo(), ReconStatusEnum.FAILURE); // 2: 失败
                 return;
             }
 
             // 4. 更新对账状态为已对账
-            reconRepository.updateReconStatus(order.getOrderNo(), 1); // 1: 已对账
+            reconRepository.updateReconStatus(order.getOrderNo(), ReconStatusEnum.SUCCESS); // 1: 已对账
 
         } catch (Exception e) {
             recordException(order.getOrderNo(), "SELF", "定时对账异常: " + e.getMessage(), 5);

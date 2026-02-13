@@ -1,6 +1,7 @@
 package tech.coffers.recon.repository;
 
 import tech.coffers.recon.entity.*;
+import tech.coffers.recon.api.enums.ReconStatusEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -90,7 +91,7 @@ public interface ReconRepository {
          * @param reconStatus 对账状态
          * @return 更新结果
          */
-        boolean updateReconStatus(String orderNo, int reconStatus);
+        boolean updateReconStatus(String orderNo, ReconStatusEnum reconStatus);
 
         /**
          * 根据订单号查询对账状态
@@ -111,7 +112,7 @@ public interface ReconRepository {
          * @param limit       限制数量
          * @return 对账订单主记录列表
          */
-        List<ReconOrderMainDO> getOrderMainByDate(String dateStr, Integer reconStatus, int offset, int limit);
+        List<ReconOrderMainDO> getOrderMainByDate(String dateStr, ReconStatusEnum reconStatus, int offset, int limit);
 
         /**
          * 查询对账异常记录（分页）
@@ -240,7 +241,7 @@ public interface ReconRepository {
          * @param reconStatus 对账状态
          * @return 订单数量
          */
-        long countOrderMainByDate(String dateStr, Integer reconStatus);
+        long countOrderMainByDate(String dateStr, ReconStatusEnum reconStatus);
 
         /**
          * 统计异常记录数量

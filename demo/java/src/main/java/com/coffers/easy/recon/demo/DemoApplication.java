@@ -4,19 +4,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import tech.coffers.recon.core.EasyReconTemplate;
-import tech.coffers.recon.entity.ReconOrderMainDO;
-import tech.coffers.recon.entity.ReconOrderSplitSubDO;
+import tech.coffers.recon.api.EasyReconApi;
+import tech.coffers.recon.api.result.ReconResult;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @SpringBootApplication
 public class DemoApplication implements CommandLineRunner {
 
     @Autowired
-    private EasyReconTemplate easyReconTemplate;
+    private EasyReconApi easyReconApi;
 
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
@@ -26,68 +25,56 @@ public class DemoApplication implements CommandLineRunner {
     public void run(String... args) throws Exception {
         System.out.println("--- Starting Java Easy Recon SDK Demo ---");
 
-        // Create Mock Data
-        ReconOrderMainDO orderMain = new ReconOrderMainDO();
-        orderMain.setOrderNo("ORD-JAVA-123456");
+        String orderNo = "ORD-JAVA-" + System.currentTimeMillis();
 
-        orderMain.setPayAmount(new BigDecimal("300.00"));
-        orderMain.setPlatformIncome(BigDecimal.ZERO);
-        orderMain.setPayFee(BigDecimal.ZERO);
-        orderMain.setSplitTotalAmount(new BigDecimal("300.00"));
-        orderMain.setReconStatus(0);
-        orderMain.setCreateTime(java.time.LocalDateTime.now());
-        orderMain.setUpdateTime(java.time.LocalDateTime.now());
+        // 1. Execute Real-time Recon with all statuses
+        System.out.println("--- Starting Real-time Recon for " + orderNo + " ---");
 
-        ReconOrderSplitSubDO sub1 = new ReconOrderSplitSubDO();
-        sub1.setOrderNo("ORD-JAVA-123456"); // Explicitly set if needed
-        sub1.setMerchantId("MCH-SUB-001");
-        sub1.setSplitAmount(new BigDecimal("200.00"));
-        sub1.setCreateTime(java.time.LocalDateTime.now());
-        sub1.setUpdateTime(java.time.LocalDateTime.now());
+        BigDecimal payAmount = new BigDecimal("300.00");
+        BigDecimal platformIncome = BigDecimal.ZERO;
+        BigDecimal payFee = BigDecimal.ZERO;
 
-        ReconOrderSplitSubDO sub2 = new ReconOrderSplitSubDO();
-        sub2.setOrderNo("ORD-JAVA-123456");
-        sub2.setMerchantId("MCH-SUB-002");
-        sub2.setSplitAmount(new BigDecimal("100.00"));
-        sub2.setCreateTime(java.time.LocalDateTime.now());
-        sub2.setUpdateTime(java.time.LocalDateTime.now());
+        Map<String, BigDecimal> splitDetails = new HashMap<>();
+        splitDetails.put("MCH-SUB-001", new BigDecimal("200.00"));
+        splitDetails.put("MCH-SUB-002", new BigDecimal("100.00"));
 
-        List<ReconOrderSplitSubDO> splitSubs = new ArrayList<>();
-        splitSubs.add(sub1);
-        splitSubs.add(sub2);
+        // status: 1 (SUCCESS)
+        ReconResult result = easyReconApi.reconOrder(
+                orderNo,
+                payAmount,
+                platformIncome,
+                payFee,
+                splitDetails,
+                1, 1, 1);
 
-        // Execute Recon
-        try {
-            boolean success = easyReconTemplate.doRealtimeRecon(orderMain, splitSubs);
-            if (success) {
-                System.out.println("--- Recon Successful ---");
+        if (result.isSuccess()) {
+            System.out.println("--- Real-time Recon Successful ---");
 
-                // Simulate Refund
-                System.out.println("--- Starting Refund Recon ---");
-                String orderNo = "ORD-JAVA-123456";
-                BigDecimal refundAmount = new BigDecimal("50.00");
-                java.time.LocalDateTime refundTime = java.time.LocalDateTime.now();
-                int refundStatus = 1; // Partial Refund
-                java.util.Map<String, BigDecimal> refundSplitDetails = new java.util.HashMap<>();
-                refundSplitDetails.put("MCH-SUB-001", new BigDecimal("50.00"));
+            // 2. Simulate Refund Recon
+            System.out.println("--- Starting Refund Recon ---");
+            BigDecimal refundAmount = new BigDecimal("50.00");
+            java.time.LocalDateTime refundTime = java.time.LocalDateTime.now();
+            int refundStatus = 1; // Partial Refund
 
-                boolean refundSuccess = easyReconTemplate.reconRefund(orderNo, refundAmount, refundTime, refundStatus,
-                        refundSplitDetails);
-                if (refundSuccess) {
-                    System.out.println("--- Refund Recon Successful ---");
-                    // Verify data in DB (Simulated by printing expected values)
-                    System.out.println("Order Pay Amount Fen: " + orderMain.getPayAmountFen());
-                    System.out.println("Split Total Amount Fen: " + orderMain.getSplitTotalAmountFen());
-                } else {
-                    System.out.println("--- Refund Recon Failed ---");
-                }
+            Map<String, BigDecimal> refundSplitDetails = new HashMap<>();
+            refundSplitDetails.put("MCH-SUB-001", new BigDecimal("50.00"));
 
+            boolean refundSuccess = easyReconApi.reconRefund(orderNo, refundAmount, refundTime, refundStatus,
+                    refundSplitDetails);
+
+            if (refundSuccess) {
+                System.out.println("--- Refund Recon Successful ---");
+
+                // 3. Query Status
+                System.out.println("Final Recon Status: " + easyReconApi.getReconStatus(orderNo));
             } else {
-                System.out.println("--- Recon Failed ---");
+                System.out.println("--- Refund Recon Failed ---");
             }
-        } catch (Exception e) {
-            System.err.println("Error executing demo: " + e.getMessage());
-            e.printStackTrace();
+
+        } else {
+            System.out.println("--- Real-time Recon Failed: " + result.getMessage() + " ---");
         }
+
+        System.out.println("--- Java Demo Completion ---");
     }
 }

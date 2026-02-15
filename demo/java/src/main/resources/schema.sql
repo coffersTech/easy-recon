@@ -4,7 +4,6 @@
 CREATE TABLE IF NOT EXISTS easy_recon_order_main (
   id BIGINT AUTO_INCREMENT COMMENT '主键 ID',
   order_no VARCHAR(64) NOT NULL COMMENT '订单号',
-  merchant_id VARCHAR(64) NOT NULL COMMENT '商户 ID',
   pay_amount DECIMAL(18,2) NOT NULL COMMENT '实付金额',
   pay_amount_fen BIGINT COMMENT '实付金额（分）',
   platform_income DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '平台收入',
@@ -13,6 +12,9 @@ CREATE TABLE IF NOT EXISTS easy_recon_order_main (
   pay_fee_fen BIGINT COMMENT '支付手续费（分）',
   split_total_amount DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '分账总金额',
   split_total_amount_fen BIGINT COMMENT '分账总金额（分）',
+  pay_status TINYINT DEFAULT 0 COMMENT '支付状态：0=处理中，1=成功，2=失败',
+  split_status TINYINT DEFAULT 0 COMMENT '分账状态：0=处理中，1=成功，2=失败',
+  notify_status TINYINT DEFAULT 0 COMMENT '通知状态：0=处理中，1=成功，2=失败',
   recon_status TINYINT NOT NULL DEFAULT 0 COMMENT '对账状态：0=待对账，1=成功，2=失败',
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

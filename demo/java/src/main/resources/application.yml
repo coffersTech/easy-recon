@@ -18,7 +18,7 @@ spring:
     # url: jdbc:postgresql://localhost:5432/easy_recon_demo
     # driverClassName: org.postgresql.Driver
     # username: postgres
-    # password: your_password
+    # password: postgres
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     # For MySQL: org.hibernate.dialect.MySQL8Dialect
@@ -28,6 +28,9 @@ spring:
 
 easy-recon:
   enabled: true
+  timing:
+    enabled: true
+  timing-cron: "0 0 2 * * ?" # 每天凌晨2点执行
   alarm:
     type: log
 

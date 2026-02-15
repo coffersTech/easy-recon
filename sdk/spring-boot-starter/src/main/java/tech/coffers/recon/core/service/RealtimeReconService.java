@@ -47,7 +47,6 @@ public class RealtimeReconService {
      * 对账订单
      *
      * @param orderNo        订单号
-     * @param merchantId     商户ID
      * @param payAmount      支付金额
      * @param platformIncome 平台收入
      * @param payFee         支付手续费

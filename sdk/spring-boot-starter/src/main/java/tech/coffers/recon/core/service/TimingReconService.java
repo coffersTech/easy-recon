@@ -36,8 +36,6 @@ public class TimingReconService {
 
     /**
      * 执行定时对账
-     *
-     * @return 对账结果
      */
     @org.springframework.scheduling.annotation.Scheduled(cron = "${easy-recon.timing-cron}")
     public void scheduledTimingRecon() {

@@ -1,5 +1,9 @@
 package tech.coffers.recon.core.service;
 
+import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 告警服务
  * <p>
@@ -9,12 +13,13 @@ package tech.coffers.recon.core.service;
  * @author Ryan
  * @since 1.0.0
  */
+@Slf4j
 public class AlarmService {
 
-    private final AlarmStrategy alarmStrategy;
+    private final List<AlarmStrategy> alarmStrategies;
 
-    public AlarmService(AlarmStrategy alarmStrategy) {
-        this.alarmStrategy = alarmStrategy;
+    public AlarmService(List<AlarmStrategy> alarmStrategies) {
+        this.alarmStrategies = alarmStrategies != null ? alarmStrategies : new ArrayList<>();
     }
 
     /**
@@ -23,7 +28,17 @@ public class AlarmService {
      * @param message 告警消息
      */
     public void sendAlarm(String message) {
-        alarmStrategy.sendAlarm(message);
+        if (alarmStrategies.isEmpty()) {
+            log.warn("未配置告警策略，消息将被忽略: {}", message);
+            return;
+        }
+        for (AlarmStrategy strategy : alarmStrategies) {
+            try {
+                strategy.sendAlarm(message);
+            } catch (Exception e) {
+                log.error("告警发送失败, strategy: {}", strategy.getClass().getSimpleName(), e);
+            }
+        }
     }
 
     /**
@@ -62,9 +77,8 @@ public class AlarmService {
 
         @Override
         public void sendAlarm(String message) {
-            // 实现钉钉告警逻辑
-            System.out.println("[DingTalk] 发送告警: " + message + webhookUrl);
-            // 实际实现中需要调用钉钉机器人 API
+            // TODO: 实际生产中应使用 RestTemplate 或其他 HTTP 客户端发送钉钉 Webhook
+            log.info("[DingTalk] 发送告警到 {}: {}", webhookUrl, message);
         }
     }
 
@@ -74,8 +88,7 @@ public class AlarmService {
     public static class LogAlarmStrategy implements AlarmStrategy {
         @Override
         public void sendAlarm(String message) {
-            // 实现日志告警逻辑
-            System.out.println("[Log] 告警: " + message);
+            log.info("[Log] 告警: {}", message);
         }
     }
 

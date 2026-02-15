@@ -31,6 +31,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 @Configuration
 @EnableConfigurationProperties(ReconSdkProperties.class)
+@org.springframework.scheduling.annotation.EnableScheduling
 public class ReconSdkAutoConfiguration {
 
     private final ReconSdkProperties properties;
@@ -105,18 +106,31 @@ public class ReconSdkAutoConfiguration {
     /**
      * 创建告警服务
      *
+     * @param alarmStrategies 所有的告警策略实现
      * @return 告警服务
      */
     @Bean
     @ConditionalOnMissingBean(AlarmService.class)
-    public AlarmService alarmService() {
-        String alarmType = properties.getAlarm().getType();
-        if ("dingtalk".equals(alarmType)) {
-            String webhookUrl = properties.getAlarm().getDingtalk().getWebhookUrl();
-            return new AlarmService(new AlarmService.DingTalkAlarmStrategy(webhookUrl));
-        } else {
-            return new AlarmService(new AlarmService.LogAlarmStrategy());
-        }
+    public AlarmService alarmService(java.util.List<AlarmService.AlarmStrategy> alarmStrategies) {
+        return new AlarmService(alarmStrategies);
+    }
+
+    /**
+     * 默认日志告警策略
+     */
+    @Bean
+    @ConditionalOnMissingBean(AlarmService.LogAlarmStrategy.class)
+    public AlarmService.LogAlarmStrategy logAlarmStrategy() {
+        return new AlarmService.LogAlarmStrategy();
+    }
+
+    /**
+     * 钉钉告警策略 (仅当配置了 webhook 时创建)
+     */
+    @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "easy-recon.alarm.dingtalk", name = "webhook-url")
+    public AlarmService.DingTalkAlarmStrategy dingTalkAlarmStrategy() {
+        return new AlarmService.DingTalkAlarmStrategy(properties.getAlarm().getDingtalk().getWebhookUrl());
     }
 
     /**

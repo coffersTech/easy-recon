@@ -43,6 +43,19 @@ public class ReconSdkProperties {
     private String tablePrefix = "easy_recon_";
 
     /**
+     * 定时对账配置
+     */
+    private Timing timing = new Timing();
+
+    @Data
+    public static class Timing {
+        /**
+         * 是否启用定时核账调度
+         */
+        private boolean enabled = true;
+    }
+
+    /**
      * 配置解密密钥（用于解密 encrypted: 前缀的配置）
      */
     private String configSecretKey;

@@ -43,6 +43,26 @@ public class EasyReconApi {
     // ==================== 实时对账 ====================
 
     /**
+     * 对账订单
+     *
+     * @param orderNo        订单号
+     * @param payAmount      支付金额
+     * @param platformIncome 平台收入
+     * @param payFee         支付手续费
+     * @param splitDetails   分账详情
+     * @param payStatus      支付状态 (0: 处理中, 1: 成功, 2: 失败)
+     * @param splitStatus    分账状态 (0: 处理中, 1: 成功, 2: 失败)
+     * @param notifyStatus   通知状态 (0: 处理中, 1: 成功, 2: 失败)
+     * @return 对账结果
+     */
+    public ReconResult reconOrder(String orderNo, BigDecimal payAmount, BigDecimal platformIncome,
+            BigDecimal payFee, Map<String, BigDecimal> splitDetails, Integer payStatus, Integer splitStatus,
+            Integer notifyStatus) {
+        return realtimeReconService.reconOrder(orderNo, payAmount, platformIncome, payFee, splitDetails,
+                payStatus, splitStatus, notifyStatus);
+    }
+
+    /**
      * 执行实时对账
      *
      * @param orderMainDO 订单主记录

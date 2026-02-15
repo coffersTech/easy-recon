@@ -7,6 +7,7 @@ import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
 import tech.coffers.recon.entity.ReconOrderSplitSubDO;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
+import tech.coffers.recon.api.enums.BusinessStatusEnum;
 import tech.coffers.recon.repository.ReconRepository;
 
 import java.math.BigDecimal;
@@ -58,40 +59,51 @@ public class RealtimeReconService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ReconResult reconOrder(String orderNo, BigDecimal payAmount, BigDecimal platformIncome,
-            BigDecimal payFee, Map<String, BigDecimal> splitDetails, boolean payStatus, boolean splitStatus,
-            boolean notifyStatus) {
-        // ... (Same implementation as before)
+            BigDecimal payFee, Map<String, BigDecimal> splitDetails, Integer payStatus, Integer splitStatus,
+            Integer notifyStatus) {
         try {
-            // 1. 校验支付状态
-            if (!payStatus) {
+            BusinessStatusEnum payEnum = BusinessStatusEnum.fromCode(payStatus);
+            BusinessStatusEnum splitEnum = BusinessStatusEnum.fromCode(splitStatus);
+            BusinessStatusEnum notifyEnum = BusinessStatusEnum.fromCode(notifyStatus);
+
+            // 1. 校验是否涉及失败 (FAILURE 直接记录异常并返回失败)
+            if (payEnum == BusinessStatusEnum.FAILURE) {
                 recordException(orderNo, "SELF", "支付状态失败，对账失败", 1);
                 return ReconResult.fail(orderNo, "支付状态失败，对账失败");
             }
-
-            // 2. 校验分账状态
-            if (!splitStatus) {
+            if (splitEnum == BusinessStatusEnum.FAILURE) {
                 recordException(orderNo, "SELF", "分账状态失败，对账失败", 2);
                 return ReconResult.fail(orderNo, "分账状态失败，对账失败");
             }
-
-            // 3. 校验通知状态
-            if (!notifyStatus) {
+            if (notifyEnum == BusinessStatusEnum.FAILURE) {
                 recordException(orderNo, "SELF", "通知状态失败，对账失败", 3);
                 return ReconResult.fail(orderNo, "通知状态失败，对账失败");
             }
 
-            // 4. 校验金额 (使用 BigDecimal compareTo 避免精度问题)
+            // 2. 检查是否有处理中的状态 (PROCESSING 记录为 PENDING，不产生异常记录)
+            boolean isAnyProcessing = payEnum == BusinessStatusEnum.PROCESSING ||
+                    splitEnum == BusinessStatusEnum.PROCESSING ||
+                    notifyEnum == BusinessStatusEnum.PROCESSING;
+
+            // 3. 计算金额 (仅在全部成功时才需要强一致性校验)
             BigDecimal splitTotal = BigDecimal.ZERO;
             if (splitDetails != null) {
                 for (BigDecimal amount : splitDetails.values()) {
                     splitTotal = splitTotal.add(amount);
                 }
             }
-            BigDecimal calcAmount = splitTotal.add(platformIncome).add(payFee);
-            // 容差值比较，使用 BigDecimal 的 subtract 和 abs
-            if (payAmount.subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
-                recordException(orderNo, "SELF", "金额校验失败，实付金额与计算金额不一致", 4);
-                return ReconResult.fail(orderNo, "金额校验失败，实付金额与计算金额不一致");
+
+            ReconStatusEnum finalReconStatus = ReconStatusEnum.SUCCESS;
+
+            if (!isAnyProcessing) {
+                BigDecimal calcAmount = splitTotal.add(platformIncome).add(payFee);
+                if (payAmount.subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
+                    recordException(orderNo, "SELF", "金额校验失败，实付金额与计算金额不一致", 4);
+                    return ReconResult.fail(orderNo, "金额校验失败，实付金额与计算金额不一致");
+                }
+            } else {
+                // 如果还处于处理中，则对账状态标记为 PENDING
+                finalReconStatus = ReconStatusEnum.PENDING;
             }
 
             // 4. 保存订单主记录
@@ -101,7 +113,10 @@ public class RealtimeReconService {
             orderMainDO.setPlatformIncome(platformIncome);
             orderMainDO.setPayFee(payFee);
             orderMainDO.setSplitTotalAmount(splitTotal);
-            orderMainDO.setReconStatus(ReconStatusEnum.SUCCESS.getCode()); // 成功
+            orderMainDO.setPayStatus(payEnum.getCode());
+            orderMainDO.setSplitStatus(splitEnum.getCode());
+            orderMainDO.setNotifyStatus(notifyEnum.getCode());
+            orderMainDO.setReconStatus(finalReconStatus.getCode());
             orderMainDO.setCreateTime(LocalDateTime.now());
             orderMainDO.setUpdateTime(LocalDateTime.now());
             reconRepository.saveOrderMain(orderMainDO);

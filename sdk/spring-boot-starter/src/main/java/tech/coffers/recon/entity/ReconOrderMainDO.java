@@ -74,6 +74,21 @@ public class ReconOrderMainDO {
     private Integer reconStatus;
 
     /**
+     * 支付处理状态：0=处理中，1=成功，2=失败
+     */
+    private Integer payStatus;
+
+    /**
+     * 分账处理状态：0=处理中，1=成功，2=失败
+     */
+    private Integer splitStatus;
+
+    /**
+     * 通知处理状态：0=处理中，1=成功，2=失败
+     */
+    private Integer notifyStatus;
+
+    /**
      * 获取对账状态枚举
      *
      * @return 对账状态枚举

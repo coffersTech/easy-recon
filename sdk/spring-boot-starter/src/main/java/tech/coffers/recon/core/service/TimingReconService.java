@@ -2,6 +2,7 @@ package tech.coffers.recon.core.service;
 
 import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
+import tech.coffers.recon.api.enums.BusinessStatusEnum;
 import tech.coffers.recon.repository.ReconRepository;
 
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
@@ -36,13 +37,26 @@ public class TimingReconService {
     /**
      * 执行定时对账
      *
+     * @return 对账结果
+     */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "${easy-recon.timing-cron}")
+    public void scheduledTimingRecon() {
+        if (!properties.getTiming().isEnabled()) {
+            return;
+        }
+        doTimingRecon(java.time.LocalDate.now().minusDays(1).toString());
+    }
+
+    /**
+     * 执行定时对账
+     *
      * @param dateStr 对账日期（yyyy-MM-dd）
      * @return 对账结果
      */
     public boolean doTimingRecon(String dateStr) {
         try {
             int offset = 0;
-            int limit = 100;
+            int limit = properties.getBatchSize();
             int totalProcessed = 0;
 
             while (true) {
@@ -59,12 +73,15 @@ public class TimingReconService {
                 }
 
                 offset += limit;
+                if (pendingOrders.size() < limit) {
+                    break;
+                }
             }
 
-            alarmService.sendAlarm("定时对账完成，共处理 " + totalProcessed + " 笔订单");
+            alarmService.sendAlarm("定时对账完成 [" + dateStr + "]，共处理 " + totalProcessed + " 笔订单");
             return true;
         } catch (Exception e) {
-            alarmService.sendAlarm("定时对账失败: " + e.getMessage());
+            alarmService.sendAlarm("定时对账失败 [" + dateStr + "]: " + e.getMessage());
             return false;
         }
     }
@@ -79,7 +96,14 @@ public class TimingReconService {
             // 1. 获取分账子记录
             List<ReconOrderSplitSubDO> splitSubDOs = reconRepository.getOrderSplitSubByOrderNo(order.getOrderNo());
 
-            // 2. 计算分账总额
+            // 2. 检查业务状态：如果是处理中，则跳过本次定时处理
+            if (BusinessStatusEnum.fromCode(order.getPayStatus()) == BusinessStatusEnum.PROCESSING ||
+                    BusinessStatusEnum.fromCode(order.getSplitStatus()) == BusinessStatusEnum.PROCESSING ||
+                    BusinessStatusEnum.fromCode(order.getNotifyStatus()) == BusinessStatusEnum.PROCESSING) {
+                return;
+            }
+
+            // 3. 计算分账总额
             BigDecimal splitTotal = BigDecimal.ZERO;
             if (splitSubDOs != null) {
                 for (ReconOrderSplitSubDO sub : splitSubDOs) {
@@ -87,18 +111,18 @@ public class TimingReconService {
                 }
             }
 
-            // 3. 校验金额 (实付金额 = 平台收入 + 支付手续费 + 分账总额)
+            // 4. 校验金额 (实付金额 = 平台收入 + 支付手续费 + 分账总额)
             BigDecimal calcAmount = splitTotal.add(order.getPlatformIncome()).add(order.getPayFee());
 
             if (order.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
                 // 金额校验失败
                 recordException(order.getOrderNo(), "SELF", "定时对账失败：金额校验不一致", 4);
-                reconRepository.updateReconStatus(order.getOrderNo(), ReconStatusEnum.FAILURE); // 2: 失败
+                reconRepository.updateReconStatus(order.getOrderNo(), ReconStatusEnum.FAILURE);
                 return;
             }
 
-            // 4. 更新对账状态为已对账
-            reconRepository.updateReconStatus(order.getOrderNo(), ReconStatusEnum.SUCCESS); // 1: 已对账
+            // 5. 更新对账状态为已对账
+            reconRepository.updateReconStatus(order.getOrderNo(), ReconStatusEnum.SUCCESS);
 
         } catch (Exception e) {
             recordException(order.getOrderNo(), "SELF", "定时对账异常: " + e.getMessage(), 5);

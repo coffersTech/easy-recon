@@ -61,9 +61,12 @@ public class JdbcReconRepository implements ReconRepository {
                 ps.setObject(7, orderMainDO.getPayFeeFen());
                 ps.setBigDecimal(8, orderMainDO.getSplitTotalAmount());
                 ps.setObject(9, orderMainDO.getSplitTotalAmountFen());
-                ps.setInt(10, orderMainDO.getReconStatus());
-                ps.setObject(11, orderMainDO.getCreateTime());
-                ps.setObject(12, orderMainDO.getUpdateTime());
+                ps.setInt(10, orderMainDO.getPayStatus() != null ? orderMainDO.getPayStatus() : 0);
+                ps.setInt(11, orderMainDO.getSplitStatus() != null ? orderMainDO.getSplitStatus() : 0);
+                ps.setInt(12, orderMainDO.getNotifyStatus() != null ? orderMainDO.getNotifyStatus() : 0);
+                ps.setInt(13, orderMainDO.getReconStatus());
+                ps.setObject(14, orderMainDO.getCreateTime());
+                ps.setObject(15, orderMainDO.getUpdateTime());
             });
             return rows > 0;
         } catch (Exception e) {
@@ -229,7 +232,7 @@ public class JdbcReconRepository implements ReconRepository {
     public boolean updateReconStatus(String orderNo, ReconStatusEnum reconStatus) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
-            String sql = "UPDATE " + tableName + " SET recon_status = ?, update_time = ? WHERE order_no = ?";
+            String sql = dialectFactory.getDialect().getUpdateReconStatusSql(tableName);
             int rows = jdbcTemplate.update(sql, reconStatus.getCode(), LocalDateTime.now(), orderNo);
             return rows > 0;
         } catch (Exception e) {
@@ -671,6 +674,9 @@ public class JdbcReconRepository implements ReconRepository {
             mainDO.setPayFeeFen(rs.getObject("pay_fee_fen", Long.class));
             mainDO.setSplitTotalAmount(rs.getBigDecimal("split_total_amount"));
             mainDO.setSplitTotalAmountFen(rs.getObject("split_total_amount_fen", Long.class));
+            mainDO.setPayStatus(rs.getInt("pay_status"));
+            mainDO.setSplitStatus(rs.getInt("split_status"));
+            mainDO.setNotifyStatus(rs.getInt("notify_status"));
             mainDO.setReconStatus(rs.getInt("recon_status"));
             mainDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
             mainDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));

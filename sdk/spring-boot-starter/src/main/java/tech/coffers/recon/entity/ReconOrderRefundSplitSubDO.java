@@ -18,37 +18,37 @@ import java.time.LocalDateTime;
 public class ReconOrderRefundSplitSubDO {
 
     /**
-     * 主键ID
+     * 自增主键
      */
     private Long id;
 
     /**
-     * 订单号
+     * 关联的业务订单号
      */
     private String orderNo;
 
     /**
-     * 商户ID (分账接收方/退款方)
+     * 被退款扣减的商户ID
      */
     private String merchantId;
 
     /**
-     * 退款分账金额
+     * 本次退至商户侧的分账金额 (元)
      */
     private BigDecimal refundSplitAmount;
 
     /**
-     * 退款分账金额（分）
+     * 退款分账金额 (分)
      */
     private Long refundSplitAmountFen;
 
     /**
-     * 创建时间
+     * 记录创建时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 最后更新时间
      */
     private LocalDateTime updateTime;
 

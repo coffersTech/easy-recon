@@ -8,299 +8,197 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 对账存储库接口
+ * 对账仓储接口
  * <p>
- * 定义对账相关的数据库操作方法，包括订单主记录、分账子记录、异常记录、通知日志等
- * </p>
+ * 提供对账系统核心实体的持久化操作，包括订单主记录、分账明细、通知状态及对账异常记录等。
  *
- * @author Ryan
- * @since 1.0.0
+ * @author coffersTech
  */
 public interface ReconRepository {
 
         /**
-         * 保存对账订单主记录
+         * 保存或更新主订单对账记录
          *
-         * @param orderMainDO 对账订单主记录
-         * @return 保存结果
+         * @param orderMainDO 对账主记录
+         * @return 是否成功
          */
         boolean saveOrderMain(ReconOrderMainDO orderMainDO);
 
         /**
-         * 批量保存分账子记录
+         * 保存单条分账子明细记录
+         *
+         * @param splitSubDO 分账子记录
+         * @return 是否成功
+         */
+        boolean saveOrderSplitSub(ReconOrderSplitSubDO splitSubDO);
+
+        /**
+         * 批量保存分账子明细记录
          *
          * @param splitSubDOs 分账子记录列表
-         * @return 保存结果
+         * @return 是否成功
          */
         boolean batchSaveOrderSplitSub(List<ReconOrderSplitSubDO> splitSubDOs);
 
         /**
-         * 保存异常记录
+         * 记录核账异常信息并发送通知
          *
-         * @param exceptionDO 异常记录
-         * @return 保存结果
+         * @param exceptionDO 异常记录明细
+         * @return 是否成功
          */
         boolean saveException(ReconExceptionDO exceptionDO);
 
         /**
-         * 批量保存异常记录
+         * 批量记录异常信息
          *
-         * @param exceptions 异常记录列表
-         * @return 保存结果
+         * @param exceptions 异常列表
+         * @return 是否成功
          */
         boolean batchSaveException(List<ReconExceptionDO> exceptions);
 
         /**
-         * 保存通知日志
+         * 保存通知流水日志
          *
-         * @param notifyLogDO 通知日志
-         * @return 保存结果
+         * @param notifyLogDO 通知日志 DO
+         * @return 是否成功
          */
         boolean saveNotifyLog(ReconNotifyLogDO notifyLogDO);
 
         /**
-         * 根据订单号查询对账订单主记录
+         * 根据主订单号查询订单主记录
          *
-         * @param orderNo 订单号
-         * @return 对账订单主记录
+         * @param orderNo 业务订单号
+         * @return 订单记录记录
          */
         ReconOrderMainDO getOrderMainByOrderNo(String orderNo);
 
         /**
-         * 根据订单号查询分账子记录
+         * 根据主订单号查询所有级联的分账子记录
          *
          * @param orderNo 订单号
-         * @return 分账子记录列表
+         * @return 分账明细列表
          */
         List<ReconOrderSplitSubDO> getOrderSplitSubByOrderNo(String orderNo);
 
         /**
-         * 查询指定日期的待核账订单（分页）
+         * 分页查询特定日期的待处理（未核账成功）订单
          *
-         * @param dateStr 日期字符串，格式：yyyy-MM-dd
-         * @param offset  偏移量
-         * @param limit   限制数量
+         * @param dateStr 业务日期 yyyy-MM-dd
+         * @param offset  起始位置
+         * @param limit   拉取数量
          * @return 待核账订单列表
          */
         List<ReconOrderMainDO> getPendingReconOrders(String dateStr, int offset, int limit);
 
         /**
-         * 更新对账状态
+         * 更新订单的全局核账状态（如 INIT -> PENDING -> SUCCESS）
          *
          * @param orderNo     订单号
-         * @param reconStatus 对账状态
-         * @return 更新结果
+         * @param reconStatus 目标状态枚举
+         * @return 是否成功
          */
         boolean updateReconStatus(String orderNo, ReconStatusEnum reconStatus);
 
         /**
-         * 根据商户号和子订单号查询主订单号
+         * 提供简化的反查功能：通过商户号和子订单号定位关联的主订单号
          *
-         * @param merchantId 商户号
+         * @param merchantId 商户ID
          * @param subOrderNo 子订单号
-         * @return 主订单号 (如果不存在返回 null)
+         * @return 对应的主订单号
          */
         String findOrderNoBySub(String merchantId, String subOrderNo);
 
         /**
-         * 根据订单号查询对账状态
+         * 查询订单当前的核账状态码
          *
          * @param orderNo 订单号
-         * @return 对账状态（可能为 null）
+         * @return 状态码 Integer
          */
         Integer getReconStatus(String orderNo);
 
         /**
-         * 更新通知状态
+         * 更新订单的主通知状态 (用于标记主侧通知是否闭环)
          *
          * @param orderNo      订单号
-         * @param notifyStatus 通知状态：0=失败，1=成功，2=待处理
-         * @return 更新结果
+         * @param notifyStatus 通知状态码
+         * @param notifyResult 通知返回结果
+         * @return 是否成功
          */
-        boolean updateNotifyStatus(String orderNo, int notifyStatus);
+        boolean updateNotifyStatus(String orderNo, int notifyStatus, String notifyResult);
 
         /**
-         * 更新分账号通知状态
+         * 更新特定子商户分账项的通知状态
          *
-         * @param orderNo      订单号
-         * @param merchantId   商户号
+         * @param orderNo      主订单号
+         * @param merchantId   子商户ID
          * @param subOrderNo   子订单号
-         * @param notifyStatus 通知状态
-         * @param notifyResult 通知结果
+         * @param notifyStatus 状态码
+         * @param notifyResult 原始返回结果
          * @return 更新结果
          */
         boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, String subOrderNo, int notifyStatus,
                         String notifyResult);
 
         /**
-         * 校验是否所有分账都已经通知成功
-         * 
-         * @param orderNo 订单号
-         * @return 是否全部通知成功
+         * 校验当前主订单下所有的分账通知状态是否均已标记为“成功”
+         *
+         * @param orderNo 业务单号
+         * @return boolean
          */
         boolean isAllSplitSubNotified(String orderNo);
 
         /**
-         * 更新通知状态及结果
-         *
-         * @param orderNo      订单号
-         * @param notifyStatus 通知状态
-         * @param notifyResult 通知结果描述
-         * @return 更新结果
-         */
-        boolean updateNotifyStatus(String orderNo, int notifyStatus, String notifyResult);
-
-        // ==================== 查询方法 ====================
-
-        /**
-         * 根据日期查询对账订单主记录（分页）
-         *
-         * @param dateStr     日期（yyyy-MM-dd）
-         * @param reconStatus 对账状态（null 表示全部）
-         * @param offset      偏移量
-         * @param limit       限制数量
-         * @return 对账订单主记录列表
+         * 按日期和状态条件分页查询主纪录
          */
         List<ReconOrderMainDO> getOrderMainByDate(String dateStr, ReconStatusEnum reconStatus, int offset, int limit);
 
         /**
-         * 查询对账异常记录（分页）
-         *
-         * @param merchantId    商户ID（null 表示全部）
-         * @param startDate     开始日期（yyyy-MM-dd）
-         * @param endDate       结束日期（yyyy-MM-dd）
-         * @param exceptionStep 异常步骤（null 表示全部）
-         * @param offset        偏移量
-         * @param limit         限制数量
-         * @return 对账异常记录列表
+         * 查询对账异常详情列表
          */
         List<ReconExceptionDO> getExceptionRecords(String merchantId, String startDate, String endDate,
                         Integer exceptionStep, int offset, int limit);
 
-        // ==================== 退款操作 ====================
-
         /**
-         * 批量保存退款分账子记录
-         *
-         * @param refundSplitSubDOs 退款分账子记录列表
-         * @return 保存结果
+         * 批量持久化退款场景下的分账数据
          */
         boolean batchSaveOrderRefundSplitSub(List<ReconOrderRefundSplitSubDO> refundSplitSubDOs);
 
         /**
-         * 更新退款对账状态
-         *
-         * @param orderNo      订单号
-         * @param refundStatus 退款对账状态
-         * @param refundAmount 退款金额
-         * @param refundTime   退款时间
-         * @return 更新结果
+         * 更新退款对账逻辑
          */
         boolean updateReconRefundStatus(String orderNo, int refundStatus, BigDecimal refundAmount,
                         LocalDateTime refundTime);
 
         /**
-         * 根据订单号查询退款分账子记录
-         *
-         * @param orderNo 订单号
-         * @return 退款分账子记录列表
+         * 查询退款分证明细
          */
         List<ReconOrderRefundSplitSubDO> getOrderRefundSplitSubByOrderNo(String orderNo);
 
-        // ==================== 对账规则操作 ====================
-
         /**
-         * 保存对账规则
-         *
-         * @param reconRuleDO 对账规则
-         * @return 保存结果
+         * 保存对账规则配置
          */
         boolean saveReconRule(ReconRuleDO reconRuleDO);
 
         /**
-         * 根据 ID 查询对账规则
-         *
-         * @param id 规则 ID
-         * @return 对账规则
+         * 获取常用配置项
          */
         ReconRuleDO getReconRuleById(Long id);
 
-        /**
-         * 根据规则名称查询对账规则
-         *
-         * @param ruleName 规则名称
-         * @return 对账规则
-         */
         ReconRuleDO getReconRuleByName(String ruleName);
 
-        /**
-         * 查询所有启用的对账规则
-         *
-         * @return 对账规则列表
-         */
         List<ReconRuleDO> getEnabledReconRules();
 
-        /**
-         * 查询对账规则列表（分页）
-         *
-         * @param offset 偏移量
-         * @param limit  限制数量
-         * @return 对账规则列表
-         */
         List<ReconRuleDO> getReconRules(int offset, int limit);
 
-        /**
-         * 更新对账规则
-         *
-         * @param reconRuleDO 对账规则
-         * @return 更新结果
-         */
         boolean updateReconRule(ReconRuleDO reconRuleDO);
 
-        /**
-         * 删除对账规则
-         *
-         * @param id 规则 ID
-         * @return 删除结果
-         */
         boolean deleteReconRule(Long id);
 
-        /**
-         * 根据订单号查询对账异常记录列表
-         *
-         * @param orderNo 订单号
-         * @return 对账异常记录列表
-         */
         List<ReconExceptionDO> getExceptionsByOrderNo(String orderNo);
 
-        // ==================== 统计报表 ====================
-
-        /**
-         * 获取指定日期的对账统计数据
-         *
-         * @param dateStr 日期字符串 (yyyy-MM-dd)
-         * @return 对账统计数据
-         */
         ReconSummaryDO getReconSummary(String dateStr);
 
-        /**
-         * 根据日期统计对账订单数量
-         *
-         * @param dateStr     日期
-         * @param reconStatus 对账状态
-         * @return 订单数量
-         */
         long countOrderMainByDate(String dateStr, ReconStatusEnum reconStatus);
 
-        /**
-         * 统计异常记录数量
-         *
-         * @param merchantId    商户ID
-         * @param startDate     开始日期
-         * @param endDate       结束日期
-         * @param exceptionStep 异常步骤
-         * @return 异常记录数量
-         */
         long countExceptionRecords(String merchantId, String startDate, String endDate, Integer exceptionStep);
-
 }

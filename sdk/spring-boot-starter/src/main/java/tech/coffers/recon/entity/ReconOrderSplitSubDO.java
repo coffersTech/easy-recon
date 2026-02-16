@@ -18,52 +18,52 @@ import java.time.LocalDateTime;
 public class ReconOrderSplitSubDO {
 
     /**
-     * 主键ID
+     * 自增主键
      */
     private Long id;
 
     /**
-     * 订单号
+     * 关联的主业务订单号
      */
     private String orderNo;
 
     /**
-     * 子订单号
+     * 子订单号 (分账单号)，各商户维度下的唯一标识
      */
     private String subOrderNo;
 
     /**
-     * 商户ID (分账接收方)
+     * 分账接收方商户ID
      */
     private String merchantId;
 
     /**
-     * 分账金额
+     * 本次分账的金额 (元)
      */
     private BigDecimal splitAmount;
 
     /**
-     * 分账金额（分）
+     * 分账金额 (分) - 持久化字段
      */
     private Long splitAmountFen;
 
     /**
-     * 创建时间
+     * 记录创建时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 最后更新时间
      */
     private LocalDateTime updateTime;
 
     /**
-     * 通知状态 (0:失败, 1:成功, 2:待处理)
+     * 该子商户侧的通知回调闭环状态 (0:失败, 1:成功, 2:待处理)
      */
     private Integer notifyStatus;
 
     /**
-     * 通知返回结果
+     * 对应该子商户分账通知的原始返回信息或错误描述
      */
     private String notifyResult;
 

@@ -11,6 +11,10 @@ package tech.coffers.recon.dialect;
  */
 public class MySqlReconDialect implements ReconDatabaseDialect {
 
+    /**
+     * 生成主订单插入或更新的 SQL 语句 (MySQL)
+     * 使用 ON DUPLICATE KEY UPDATE 实现幂等录入
+     */
     @Override
     public String getInsertOrderMainSql(String tableName) {
         return "INSERT INTO " + tableName
@@ -26,6 +30,9 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
                 + "recon_status = VALUES(recon_status), update_time = VALUES(update_time)";
     }
 
+    /**
+     * 生成分账项插入或更新的 SQL 语句 (MySQL)
+     */
     @Override
     public String getInsertOrderSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
@@ -38,12 +45,18 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
                 + "update_time = VALUES(update_time)";
     }
 
+    /**
+     * 生成异常信息记录的 SQL 语句
+     */
     @Override
     public String getInsertExceptionSql(String tableName) {
         return "INSERT INTO " + tableName
                 + " (order_no, merchant_id, exception_msg, exception_step, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
+    /**
+     * 生成通知日志插入的 SQL 语句 (MySQL)
+     */
     @Override
     public String getInsertNotifyLogSql(String tableName) {
         return "INSERT INTO " + tableName
@@ -54,12 +67,18 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
                 + "notify_result = VALUES(notify_result), update_time = VALUES(update_time)";
     }
 
+    /**
+     * 生成退款分项记录插入的 SQL 语句
+     */
     @Override
     public String getInsertOrderRefundSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
                 + " (order_no, merchant_id, refund_split_amount, refund_split_amount_fen, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)";
     }
 
+    /**
+     * 生成查询待核账订单的分页 SQL 语句 (MySQL)
+     */
     @Override
     public String getPendingReconOrdersSql(String tableName, int offset, int limit) {
         return "SELECT * FROM " + tableName + " WHERE recon_status = 0 ORDER BY create_time ASC LIMIT " + limit

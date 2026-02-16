@@ -12,17 +12,17 @@ import lombok.Getter;
 public enum NotifyStatusEnum {
 
     /**
-     * 通知中 / 未知
+     * 回调通知中 / 待重试 / 初始状态
      */
     PROCESSING(0, "通知中"),
 
     /**
-     * 通知成功
+     * 接收方成功接收通知并返回成功标识 (如 SUCCESS)
      */
     SUCCESS(1, "通知成功"),
 
     /**
-     * 通知失败
+     * 接收方返回失败标识或通知次数用尽仍未成功
      */
     FAILURE(2, "通知失败");
 

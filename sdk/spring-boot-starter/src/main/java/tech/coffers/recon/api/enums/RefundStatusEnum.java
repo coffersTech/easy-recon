@@ -12,17 +12,17 @@ import lombok.Getter;
 public enum RefundStatusEnum {
 
     /**
-     * 退款中 / 未知
+     * 退款申请处理中
      */
     PROCESSING(0, "退款中"),
 
     /**
-     * 退款成功
+     * 退款金额已全部原路返还成功
      */
     SUCCESS(1, "退款成功"),
 
     /**
-     * 退款失败
+     * 退款指令执行失败
      */
     FAILURE(2, "退款失败");
 

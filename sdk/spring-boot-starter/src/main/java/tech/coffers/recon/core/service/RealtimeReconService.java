@@ -367,6 +367,12 @@ public class RealtimeReconService {
 
     /**
      * 对账通知回调 (带子订单号)
+     * <p>
+     * 逻辑步骤：
+     * 1. 如果是子商户通知，更新对应的 sub_order_split 表。
+     * 2. 如果是主记录通知，更新主记录。
+     * 3. 记录通知日志 (easy_recon_notify_log)。
+     * 4. 触发一次“重对账”，检查是否所有业务状态都已闭环以此更新订单最终对账状态。
      *
      * @param orderNo      订单号
      * @param merchantId   商户号
@@ -394,13 +400,14 @@ public class RealtimeReconService {
 
             NotifyStatusEnum notifyEnum = notifyStatus != null ? notifyStatus : NotifyStatusEnum.PROCESSING;
 
-            // 1. 更新分账子表的通知状态
+            // 1. 更新分账子表的通知状态 (如果是多商户场景)
             if (merchantId != null && !"SELF".equals(merchantId)) {
                 reconRepository.updateSplitSubNotifyStatus(orderNo, merchantId, subOrderNo, notifyEnum.getCode(),
                         notifyResult);
             }
 
             // 2. 检查是否所有分账都已经通知成功
+            // 核心思路：如果此时所有分账通知都已成功，则该订单在“通知侧”已闭环
             boolean allNotified = reconRepository.isAllSplitSubNotified(orderNo);
             if (allNotified) {
                 // 如果全部成功，同步更新主表的总体通知状态为全局成功
@@ -413,7 +420,7 @@ public class RealtimeReconService {
                         "Merchant " + merchantId + " notify failed");
             }
 
-            // 3. 记录通用通知日志
+            // 3. 记录通用通知日志 (留存历史)
             ReconNotifyLogDO notifyLogDO = new ReconNotifyLogDO();
             notifyLogDO.setOrderNo(orderNo);
             notifyLogDO.setSubOrderNo(subOrderNo);
@@ -425,7 +432,7 @@ public class RealtimeReconService {
             notifyLogDO.setUpdateTime(LocalDateTime.now());
             reconRepository.saveNotifyLog(notifyLogDO);
 
-            // 4. 自动触发一次重对账检查
+            // 4. 自动触发核账检查 (检查支付、分账、通知三个维度)
             boolean retrySuccess = retryRecon(orderNo);
 
             return retrySuccess ? ReconResult.success(orderNo)

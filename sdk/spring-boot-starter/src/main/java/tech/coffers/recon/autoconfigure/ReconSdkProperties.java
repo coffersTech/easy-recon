@@ -5,12 +5,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.math.BigDecimal;
 
 /**
- * Easy Recon SDK 配置属性
+ * Easy Recon SDK 核心配置属性类
  * <p>
- * 用于读取和管理 SDK 的配置信息，支持在 application.yml 中配置
- * </p>
+ * 该类映射以 "easy-recon" 为前缀的配置项。主要包含：
+ * <ul>
+ * <li>SDK 开关与核账精度控制 (amount-tolerance)</li>
+ * <li>数据库访问配置 (table-prefix)</li>
+ * <li>定时对账任务调度频率 (timing-cron, batch-size)</li>
+ * <li>核心异步处理线程池配置 (thread-pool)</li>
+ * <li>多种业务异常告警策略配置 (alarm)</li>
+ * </ul>
  *
- * @author Ryan
+ * @author coffersTech
  * @since 1.0.0
  */
 @Data

@@ -12,17 +12,17 @@ import lombok.Getter;
 public enum SplitStatusEnum {
 
     /**
-     * 分账中 / 未知
+     * 分账任务处理中 / 初始待同步
      */
     PROCESSING(0, "分账中"),
 
     /**
-     * 分账成功
+     * 分账指令已成功执行且接收方已入账
      */
     SUCCESS(1, "分账成功"),
 
     /**
-     * 分账失败
+     * 分账指令执行失败或已发生冲正
      */
     FAILURE(2, "分账失败");
 

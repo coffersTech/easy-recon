@@ -27,12 +27,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * 对账SDK自动配置类
+ * Easy Recon SDK Spring Boot 自动配置入口类
  * <p>
- * 自动配置SDK所需的所有组件，包括服务、存储库等
- * </p>
+ * 该类负责集成并初始化 SDK 的核心组件，包括：
+ * <ul>
+ * <li>数据库方言 (MySql/PostgreSQL) 自动识别与注入</li>
+ * <li>基于 JdbcTemplate 的持久化仓储 (ReconRepository)</li>
+ * <li>实时对账核心逻辑 (RealtimeReconService)</li>
+ * <li>基于 Spring @Scheduled 的定时对账补偿逻辑 (TimingReconService)</li>
+ * <li>多渠道告警服务 (AlarmService)</li>
+ * <li>以及基于 Flyway 的 SDK 专用表结构自动初始化</li>
+ * </ul>
  *
- * @author Ryan
+ * @author coffersTech
  * @since 1.0.0
  */
 @Configuration

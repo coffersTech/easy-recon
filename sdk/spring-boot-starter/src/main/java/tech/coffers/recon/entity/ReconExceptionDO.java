@@ -17,37 +17,44 @@ import java.time.LocalDateTime;
 public class ReconExceptionDO {
 
     /**
-     * 主键ID
+     * 自增主键
      */
     private Long id;
 
     /**
-     * 订单号
+     * 关联的业务订单号
      */
     private String orderNo;
 
     /**
-     * 商户ID
+     * 发生异常的相关商户ID (针对平台侧异常可记录为 SELF 或特定 ID)
      */
     private String merchantId;
 
     /**
-     * 异常信息
+     * 详细的异常错误描述信息
      */
     private String exceptionMsg;
 
     /**
-     * 异常步骤：1=支付状态，2=分账状态，3=通知状态，4=金额校验，5=其他
+     * 异常发生的核账步骤阶段
+     * <ul>
+     * <li>1: 支付状态核对阶段</li>
+     * <li>2: 分账状态核对阶段</li>
+     * <li>3: 通知回调核对阶段</li>
+     * <li>4: 金额一致性校验阶段</li>
+     * <li>5: 其他/系统异常</li>
+     * </ul>
      */
     private Integer exceptionStep;
 
     /**
-     * 创建时间
+     * 异常首次记录时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 最后一次更新时间
      */
     private LocalDateTime updateTime;
 

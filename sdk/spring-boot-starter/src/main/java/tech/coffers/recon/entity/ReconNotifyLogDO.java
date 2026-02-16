@@ -17,47 +17,47 @@ import java.time.LocalDateTime;
 public class ReconNotifyLogDO {
 
     /**
-     * 主键ID
+     * 自增主键
      */
     private Long id;
 
     /**
-     * 订单号
+     * 关联的主订单号
      */
     private String orderNo;
 
     /**
-     * 子订单号
+     * 关联的子订单号 (分账单号)
      */
     private String subOrderNo;
 
     /**
-     * 商户ID
+     * 被通知方商户ID
      */
     private String merchantId;
 
     /**
-     * 通知地址
+     * 实际触发通知的回调 URL 地址
      */
     private String notifyUrl;
 
     /**
-     * 通知状态：0=失败，1=成功
+     * 通知判定状态 (0:失败, 1:成功)
      */
     private Integer notifyStatus;
 
     /**
-     * 通知结果
+     * 接收方返回的原始 Response 内容或 HTTP 错误描述
      */
     private String notifyResult;
 
     /**
-     * 创建时间
+     * 通知记录创建时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 最后更新时间
      */
     private LocalDateTime updateTime;
 

@@ -12,17 +12,17 @@ import lombok.Getter;
 public enum PayStatusEnum {
 
     /**
-     * 支付中 / 未知
+     * 支付中 / 未知 / 初始状态
      */
     PROCESSING(0, "支付中"),
 
     /**
-     * 支付成功
+     * 支付渠道已确认支付成功
      */
     SUCCESS(1, "支付成功"),
 
     /**
-     * 支付失败
+     * 支付渠道明确返回支付失败或已关闭
      */
     FAILURE(2, "支付失败");
 

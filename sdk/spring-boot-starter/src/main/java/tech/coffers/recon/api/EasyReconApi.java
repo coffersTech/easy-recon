@@ -88,14 +88,16 @@ public class EasyReconApi {
     }
 
     /**
-     * 对账通知回调
+     * 对账通知回调处理
+     * <p>
+     * 当外部业务系统（如分账系统）处理完通知后，回传结果给对账 SDK 进行状态更新。
      *
-     * @param orderNo      订单号
-     * @param merchantId   商户号
-     * @param notifyUrl    通知地址
-     * @param notifyStatus 通知状态
-     * @param notifyResult 通知返回结果
-     * @return 对账结果
+     * @param orderNo      业务主订单号
+     * @param merchantId   触发通知的商户号 (SELF 代表主订单，其他代表子订单商户)
+     * @param notifyUrl    接收通知的地址
+     * @param notifyStatus 通知后的最终状态 (SUCCESS/FAILURE)
+     * @param notifyResult 通知返回的原始报文（用于日志留痕）
+     * @return 更新后的对账结果
      */
     public ReconResult reconNotify(String orderNo, String merchantId, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
@@ -103,7 +105,16 @@ public class EasyReconApi {
     }
 
     /**
-     * 对账通知回调 (根据商户号和子订单号识别)
+     * 简化版对账通知回调处理 (基于子订单识别)
+     * <p>
+     * 当无法直接获取 orderNo 时，可以通过商户号和子订单号识别主订单及对应条目。
+     *
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知结果状态
+     * @param notifyResult 通知返回原始结果
+     * @return 对账处理结果
      */
     public ReconResult reconNotifyBySub(String merchantId, String subOrderNo, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
@@ -111,7 +122,15 @@ public class EasyReconApi {
     }
 
     /**
-     * 对账通知回调 (带子订单号)
+     * 对账通知回调处理 (带子订单号)
+     *
+     * @param orderNo      业务主订单号
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知结果状态
+     * @param notifyResult 通知返回原始结果
+     * @return 对账处理结果
      */
     public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
@@ -119,7 +138,15 @@ public class EasyReconApi {
     }
 
     /**
-     * 异步对账通知回调
+     * 异步处理对账通知回调
+     *
+     * @param orderNo      订单号
+     * @param merchantId   商户号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知状态
+     * @param notifyResult 通知返回结果
+     * @return 对账结果
+     * @see #reconNotify(String, String, String, NotifyStatusEnum, String)
      */
     public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
@@ -127,7 +154,15 @@ public class EasyReconApi {
     }
 
     /**
-     * 异步对账通知回调 (根据商户号和子订单号识别)
+     * 异步简化版对账通知回调处理 (基于子订单识别)
+     *
+     * @param merchantId   商户ID
+     * @param subOrderNo   子订单号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知状态
+     * @param notifyResult 通知返回结果
+     * @return 异步对账结果
+     * @see #reconNotifyBySub(String, String, String, NotifyStatusEnum, String)
      */
     public CompletableFuture<ReconResult> reconNotifyBySubAsync(String merchantId, String subOrderNo,
             String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
@@ -136,7 +171,16 @@ public class EasyReconApi {
     }
 
     /**
-     * 异步对账通知回调 (带子订单号)
+     * 异步对账通知回调处理 (带子订单号)
+     *
+     * @param orderNo      订单号
+     * @param merchantId   商户ID
+     * @param subOrderNo   子订单号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知状态
+     * @param notifyResult 通知返回结果
+     * @return 异步对账结果
+     * @see #reconNotify(String, String, String, String, NotifyStatusEnum, String)
      */
     public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String subOrderNo,
             String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
@@ -146,6 +190,8 @@ public class EasyReconApi {
 
     /**
      * 执行实时对账
+     * <p>
+     * 内部方法，用于根据订单主记录和分账子记录执行对账逻辑。
      *
      * @param orderMainDO 订单主记录
      * @param splitSubDOs 分账子记录列表

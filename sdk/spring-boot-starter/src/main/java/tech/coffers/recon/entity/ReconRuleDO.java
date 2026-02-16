@@ -17,42 +17,47 @@ import java.time.LocalDateTime;
 public class ReconRuleDO {
 
     /**
-     * 主键ID
+     * 自增主键
      */
     private Long id;
 
     /**
-     * 规则名称
+     * 规则显示名称
      */
     private String ruleName;
 
     /**
-     * 规则类型：1=金额规则，2=状态规则，3=其他规则
+     * 规则类型：
+     * <ul>
+     * <li>1: 金额一致性规则 (如：实付 = 分账 + 手续费)</li>
+     * <li>2: 业务状态同步规则</li>
+     * <li>3: 周期性补偿规则</li>
+     * </ul>
      */
     private Integer ruleType;
 
     /**
-     * 规则表达式
+     * 核心规则表达式 (如逻辑表达式或脚本路径)
      */
     private String ruleExpression;
 
     /**
-     * 规则描述
+     * 详细的规则逻辑说明
      */
     private String ruleDesc;
 
     /**
-     * 是否启用：1=启用，0=禁用
+     * 规则激活状态 (1:启用, 0:禁用)
      */
     private Integer status;
 
     /**
-     * 创建时间
+     * 规则创建时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 规则最后修改时间
      */
     private LocalDateTime updateTime;
 

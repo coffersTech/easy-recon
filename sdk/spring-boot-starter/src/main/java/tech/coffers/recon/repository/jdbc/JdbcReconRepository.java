@@ -89,8 +89,45 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
-    // ==================== 分账子记录操作 ====================
+    /**
+     * 保存单条分账子记录
+     * <p>
+     * 适用于分次或动态增加分账子项的场景。
+     *
+     * @param splitSubDO 分账子明细
+     * @return 是否成功
+     */
+    @Override
+    public boolean saveOrderSplitSub(ReconOrderSplitSubDO splitSubDO) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String sql = dialectFactory.getDialect().getInsertOrderSplitSubSql(tableName);
+            int rows = jdbcTemplate.update(sql, ps -> {
+                ps.setString(1, splitSubDO.getOrderNo());
+                ps.setString(2, splitSubDO.getSubOrderNo());
+                ps.setString(3, splitSubDO.getMerchantId());
+                ps.setBigDecimal(4, splitSubDO.getSplitAmount());
+                ps.setObject(5, splitSubDO.getSplitAmountFen());
+                ps.setInt(6, splitSubDO.getNotifyStatus() != null ? splitSubDO.getNotifyStatus() : 2);
+                ps.setString(7, splitSubDO.getNotifyResult());
+                ps.setObject(8, splitSubDO.getCreateTime());
+                ps.setObject(9, splitSubDO.getUpdateTime());
+            });
+            return rows > 0;
+        } catch (Exception e) {
+            log.error("保存单条分账子明细失败", e);
+            return false;
+        }
+    }
 
+    /**
+     * 批量保存分账子记录
+     * <p>
+     * 使用 BatchUpdate 提升高性能批量插入能力。
+     *
+     * @param splitSubDOs 子明细列表
+     * @return 批量执行结果
+     */
     @Override
     public boolean batchSaveOrderSplitSub(List<ReconOrderSplitSubDO> splitSubDOs) {
         if (splitSubDOs == null || splitSubDOs.isEmpty()) {
@@ -128,6 +165,12 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
+    /**
+     * 查询指定订单的所有分账明细
+     *
+     * @param orderNo 业务订单号
+     * @return 子记录列表
+     */
     @Override
     public List<ReconOrderSplitSubDO> getOrderSplitSubByOrderNo(String orderNo) {
         try {
@@ -247,11 +290,14 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
-    @Override
-    public boolean updateNotifyStatus(String orderNo, int notifyStatus) {
-        return updateNotifyStatus(orderNo, notifyStatus, null);
-    }
-
+    /**
+     * 更新订单的主对账通知状态
+     *
+     * @param orderNo      订单号
+     * @param notifyStatus 通知状态码
+     * @param notifyResult 通知返回结果
+     * @return 更新结果
+     */
     @Override
     public boolean updateNotifyStatus(String orderNo, int notifyStatus, String notifyResult) {
         try {

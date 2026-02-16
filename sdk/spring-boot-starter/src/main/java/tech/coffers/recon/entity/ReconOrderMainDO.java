@@ -19,116 +19,118 @@ import java.time.LocalDateTime;
 public class ReconOrderMainDO {
 
     /**
-     * 主键ID
+     * 主键ID (数据库自增)
      */
     private Long id;
 
     /**
-     * 订单号
+     * 业务订单号 (系统内唯一)
      */
     private String orderNo;
 
     /**
-     * 实付金额
+     * 实付金额 (元)
      */
     private BigDecimal payAmount;
 
     /**
-     * 支付金额（分）
+     * 支付金额 (分) - 存储于数据库提高精确度
      */
     private Long payAmountFen;
 
     /**
-     * 平台收入
+     * 平台预留/收入金额 (元)
      */
     private BigDecimal platformIncome;
 
     /**
-     * 平台收入（分）
+     * 平台收入 (分)
      */
     private Long platformIncomeFen;
 
     /**
-     * 支付手续费
+     * 支付渠道收取的结算手续费 (元)
      */
     private BigDecimal payFee;
 
     /**
-     * 支付手续费（分）
+     * 支付手续费 (分)
      */
     private Long payFeeFen;
 
     /**
-     * 分账总金额
+     * 累计的分账总金额 (元) - 逻辑上应等于所有分账项之和
      */
     private BigDecimal splitTotalAmount;
 
     /**
-     * 分账总金额（分）
+     * 分账总金额 (分)
      */
     private Long splitTotalAmountFen;
 
     /**
-     * 对账状态：0=待对账，1=成功，2=失败
+     * 最终对账核对结果状态
+     * 
+     * @see tech.coffers.recon.api.enums.ReconStatusEnum
      */
     private Integer reconStatus;
 
     /**
-     * 支付处理状态：0=处理中，1=成功，2=失败
+     * 核心支付侧业务状态 (0:处理中 1:成功 2:失败)
      */
     private Integer payStatus;
 
     /**
-     * 分账处理状态：0=处理中，1=成功，2=失败
+     * 核心分账侧业务状态 (0:处理中 1:成功 2:失败)
      */
     private Integer splitStatus;
 
     /**
-     * 通知处理状态：0=处理中，1=成功，2=失败
+     * 核心通知侧业务状态 (0:处理中 1:成功 2:失败)
      */
     private Integer notifyStatus;
 
     /**
-     * 最新一次通知结果
+     * 记录最后一次通知失败的具体原始原因或成功标识
      */
     private String notifyResult;
 
     /**
-     * 获取对账状态枚举
+     * 辅助方法：快速获取对账状态枚举对象
      *
-     * @return 对账状态枚举
+     * @return ReconStatusEnum
      */
     public ReconStatusEnum getReconStatusEnum() {
         return ReconStatusEnum.fromCode(reconStatus);
     }
 
     /**
-     * 创建时间
+     * 记录创建时间
      */
     private LocalDateTime createTime;
 
     /**
-     * 更新时间
+     * 最后一次状态更新或数据变动时间
      */
     private LocalDateTime updateTime;
 
     /**
-     * 退款金额
+     * 累计退款成功的金额 (元)
      */
     private BigDecimal refundAmount;
 
     /**
-     * 退款金额（分）
+     * 累计退款金额 (分)
      */
     private Long refundAmountFen;
 
     /**
-     * 退款状态：0=未退款，1=部分退款，2=全额退款
+     * 退款对账状态 (0:未退款 1:部分退 2:全额退)
      */
     private Integer refundStatus;
 
     /**
-     * 退款时间
+     * 最后一次退款成功的业务处理时间
      */
     private LocalDateTime refundTime;
 

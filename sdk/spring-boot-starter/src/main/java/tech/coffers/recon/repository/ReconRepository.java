@@ -91,7 +91,7 @@ public interface ReconRepository {
         List<ReconOrderMainDO> getPendingReconOrders(String dateStr, int offset, int limit);
 
         /**
-         * 更新订单的全局核账状态（如 INIT -> PENDING -> SUCCESS）
+         * 更新订单的全局核账状态（如 INIT to PENDING to SUCCESS）
          *
          * @param orderNo     订单号
          * @param reconStatus 目标状态枚举

@@ -115,11 +115,13 @@ public interface ReconRepository {
          *
          * @param orderNo      订单号
          * @param merchantId   商户号
+         * @param subOrderNo   子订单号
          * @param notifyStatus 通知状态
          * @param notifyResult 通知结果
          * @return 更新结果
          */
-        boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, int notifyStatus, String notifyResult);
+        boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, String subOrderNo, int notifyStatus,
+                        String notifyResult);
 
         /**
          * 校验是否所有分账都已经通知成功

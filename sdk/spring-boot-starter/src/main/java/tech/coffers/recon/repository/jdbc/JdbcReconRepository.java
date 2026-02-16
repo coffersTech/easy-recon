@@ -205,12 +205,13 @@ public class JdbcReconRepository implements ReconRepository {
             String sql = dialectFactory.getDialect().getInsertNotifyLogSql(tableName);
             int rows = jdbcTemplate.update(sql, ps -> {
                 ps.setString(1, notifyLogDO.getOrderNo());
-                ps.setString(2, notifyLogDO.getMerchantId());
-                ps.setString(3, notifyLogDO.getNotifyUrl());
-                ps.setInt(4, notifyLogDO.getNotifyStatus());
-                ps.setString(5, notifyLogDO.getNotifyResult());
-                ps.setObject(6, notifyLogDO.getCreateTime());
-                ps.setObject(7, notifyLogDO.getUpdateTime());
+                ps.setString(2, notifyLogDO.getSubOrderNo());
+                ps.setString(3, notifyLogDO.getMerchantId());
+                ps.setString(4, notifyLogDO.getNotifyUrl());
+                ps.setInt(5, notifyLogDO.getNotifyStatus());
+                ps.setString(6, notifyLogDO.getNotifyResult());
+                ps.setObject(7, notifyLogDO.getCreateTime());
+                ps.setObject(8, notifyLogDO.getUpdateTime());
             });
             return rows > 0;
         } catch (Exception e) {
@@ -266,13 +267,25 @@ public class JdbcReconRepository implements ReconRepository {
     }
 
     @Override
-    public boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, int notifyStatus,
+    public boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, String subOrderNo, int notifyStatus,
             String notifyResult) {
         try {
             String tableName = properties.getTablePrefix() + "order_split_sub";
-            String sql = "UPDATE " + tableName
-                    + " SET notify_status = ?, notify_result = ?, update_time = ? WHERE order_no = ? AND merchant_id = ?";
-            int rows = jdbcTemplate.update(sql, notifyStatus, notifyResult, LocalDateTime.now(), orderNo, merchantId);
+            StringBuilder sql = new StringBuilder("UPDATE " + tableName
+                    + " SET notify_status = ?, notify_result = ?, update_time = ? WHERE order_no = ? AND merchant_id = ?");
+            List<Object> params = new ArrayList<>();
+            params.add(notifyStatus);
+            params.add(notifyResult);
+            params.add(LocalDateTime.now());
+            params.add(orderNo);
+            params.add(merchantId);
+
+            if (subOrderNo != null) {
+                sql.append(" AND sub_order_no = ?");
+                params.add(subOrderNo);
+            }
+
+            int rows = jdbcTemplate.update(sql.toString(), params.toArray());
             return rows > 0;
         } catch (Exception e) {
             log.error("更新分账子表通知状态失败", e);
@@ -759,6 +772,8 @@ public class JdbcReconRepository implements ReconRepository {
             subDO.setSplitAmountFen(rs.getObject("split_amount_fen", Long.class));
             subDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
             subDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            subDO.setNotifyStatus(rs.getInt("notify_status"));
+            subDO.setNotifyResult(rs.getString("notify_result"));
             return subDO;
         }
     }

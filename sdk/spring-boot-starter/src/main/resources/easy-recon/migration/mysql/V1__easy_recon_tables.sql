@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_split_sub` (
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_order_merchant` (`order_no`, `merchant_id`),
+  UNIQUE KEY `uk_order_mch_sub` (`order_no`, `merchant_id`, `sub_order_no`),
   KEY `idx_sub_order_no` (`order_no`),
   KEY `idx_sub_merchant_id` (`merchant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账订单分账子记录';
@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS `easy_recon_exception` (
 CREATE TABLE IF NOT EXISTS `easy_recon_notify_log` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `order_no` VARCHAR(64) NOT NULL COMMENT '订单号',
+  `sub_order_no` VARCHAR(64) NULL COMMENT '子订单号',
   `merchant_id` VARCHAR(64) NOT NULL COMMENT '商户 ID',
   `notify_url` VARCHAR(255) NOT NULL COMMENT '通知 URL',
   `notify_status` TINYINT NOT NULL DEFAULT 0 COMMENT '通知状态：0=失败，1=成功',
@@ -88,7 +89,7 @@ CREATE TABLE IF NOT EXISTS `easy_recon_notify_log` (
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_order_no_mch_notify` (`order_no`, `merchant_id`),
+  UNIQUE KEY `uk_order_no_mch_sub_notify` (`order_no`, `merchant_id`, `sub_order_no`),
   KEY `idx_notify_log_merchant_id` (`merchant_id`),
   KEY `idx_notify_log_status` (`notify_status`),
   KEY `idx_notify_log_create_time` (`create_time`)

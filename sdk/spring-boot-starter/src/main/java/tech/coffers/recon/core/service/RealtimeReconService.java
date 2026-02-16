@@ -346,12 +346,30 @@ public class RealtimeReconService {
     @Transactional(rollbackFor = Exception.class)
     public ReconResult reconNotify(String orderNo, String merchantId, String notifyUrl, NotifyStatusEnum notifyStatus,
             String notifyResult) {
+        return reconNotify(orderNo, merchantId, null, notifyUrl, notifyStatus, notifyResult);
+    }
+
+    /**
+     * 对账通知回调 (带子订单号)
+     *
+     * @param orderNo      订单号
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知状态
+     * @param notifyResult 通知返回结果
+     * @return 对账结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
         try {
             NotifyStatusEnum notifyEnum = notifyStatus != null ? notifyStatus : NotifyStatusEnum.PROCESSING;
 
-            // 1. 更新分账子表的通知状态 (如果指定了具体的商户)
+            // 1. 更新分账子表的通知状态
             if (merchantId != null && !"SELF".equals(merchantId)) {
-                reconRepository.updateSplitSubNotifyStatus(orderNo, merchantId, notifyEnum.getCode(), notifyResult);
+                reconRepository.updateSplitSubNotifyStatus(orderNo, merchantId, subOrderNo, notifyEnum.getCode(),
+                        notifyResult);
             }
 
             // 2. 检查是否所有分账都已经通知成功
@@ -370,6 +388,7 @@ public class RealtimeReconService {
             // 3. 记录通用通知日志
             ReconNotifyLogDO notifyLogDO = new ReconNotifyLogDO();
             notifyLogDO.setOrderNo(orderNo);
+            notifyLogDO.setSubOrderNo(subOrderNo);
             notifyLogDO.setMerchantId(merchantId);
             notifyLogDO.setNotifyUrl(notifyUrl);
             notifyLogDO.setNotifyStatus(notifyEnum.getCode());
@@ -394,8 +413,17 @@ public class RealtimeReconService {
      */
     public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
+        return reconNotifyAsync(orderNo, merchantId, null, notifyUrl, notifyStatus, notifyResult);
+    }
+
+    /**
+     * 异步对账通知回调 (带子订单号)
+     */
+    public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String subOrderNo,
+            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
         return CompletableFuture.supplyAsync(
-                () -> reconNotify(orderNo, merchantId, notifyUrl, notifyStatus, notifyResult), executorService);
+                () -> reconNotify(orderNo, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult),
+                executorService);
     }
 
     private void recordException(String orderNo, String merchantId, String msg, int step) {

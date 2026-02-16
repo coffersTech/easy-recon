@@ -106,7 +106,7 @@ CREATE INDEX IF NOT EXISTS "idx_refund_sub_order_no" ON "easy_recon_order_refund
 CREATE INDEX IF NOT EXISTS "idx_refund_sub_merchant_id" ON "easy_recon_order_refund_split_sub" ("merchant_id");
 
 -- 创建唯一索引
-CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_merchant" ON "easy_recon_order_split_sub" ("order_no", "merchant_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_mch_sub" ON "easy_recon_order_split_sub" ("order_no", "merchant_id", "sub_order_no");
 
 -- 创建普通索引
 CREATE INDEX IF NOT EXISTS "idx_sub_order_no" ON "easy_recon_order_split_sub" ("order_no");
@@ -144,6 +144,7 @@ CREATE INDEX IF NOT EXISTS "idx_exc_create_time" ON "easy_recon_exception" ("cre
 CREATE TABLE IF NOT EXISTS "easy_recon_notify_log" (
   "id" BIGSERIAL NOT NULL PRIMARY KEY,
   "order_no" VARCHAR(64) NOT NULL,
+  "sub_order_no" VARCHAR(64),
   "merchant_id" VARCHAR(64) NOT NULL,
   "notify_url" VARCHAR(255) NOT NULL,
   "notify_status" SMALLINT NOT NULL DEFAULT 0,
@@ -155,6 +156,7 @@ CREATE TABLE IF NOT EXISTS "easy_recon_notify_log" (
 COMMENT ON TABLE "easy_recon_notify_log" IS '对账通知日志';
 COMMENT ON COLUMN "easy_recon_notify_log"."id" IS '主键 ID';
 COMMENT ON COLUMN "easy_recon_notify_log"."order_no" IS '订单号';
+COMMENT ON COLUMN "easy_recon_notify_log"."sub_order_no" IS '子订单号';
 COMMENT ON COLUMN "easy_recon_notify_log"."merchant_id" IS '商户 ID';
 COMMENT ON COLUMN "easy_recon_notify_log"."notify_url" IS '通知 URL';
 COMMENT ON COLUMN "easy_recon_notify_log"."notify_status" IS '通知状态：0=失败，1=成功';
@@ -163,7 +165,7 @@ COMMENT ON COLUMN "easy_recon_notify_log"."create_time" IS '创建时间';
 COMMENT ON COLUMN "easy_recon_notify_log"."update_time" IS '更新时间';
 
 -- 创建唯一索引
-CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_no_mch_notify" ON "easy_recon_notify_log" ("order_no", "merchant_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_no_mch_sub_notify" ON "easy_recon_notify_log" ("order_no", "merchant_id", "sub_order_no");
 
 -- 创建普通索引
 CREATE INDEX IF NOT EXISTS "idx_notify_log_merchant_id" ON "easy_recon_notify_log" ("merchant_id");

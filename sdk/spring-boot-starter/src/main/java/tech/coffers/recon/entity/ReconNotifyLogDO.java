@@ -27,6 +27,11 @@ public class ReconNotifyLogDO {
     private String orderNo;
 
     /**
+     * 子订单号
+     */
+    private String subOrderNo;
+
+    /**
      * 商户ID
      */
     private String merchantId;

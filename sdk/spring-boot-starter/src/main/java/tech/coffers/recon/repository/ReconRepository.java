@@ -101,6 +101,25 @@ public interface ReconRepository {
          */
         Integer getReconStatus(String orderNo);
 
+        /**
+         * 更新通知状态
+         *
+         * @param orderNo      订单号
+         * @param notifyStatus 通知状态：0=失败，1=成功，2=处理中
+         * @return 更新结果
+         */
+        boolean updateNotifyStatus(String orderNo, int notifyStatus);
+
+        /**
+         * 更新通知状态及结果
+         *
+         * @param orderNo      订单号
+         * @param notifyStatus 通知状态
+         * @param notifyResult 通知结果描述
+         * @return 更新结果
+         */
+        boolean updateNotifyStatus(String orderNo, int notifyStatus, String notifyResult);
+
         // ==================== 查询方法 ====================
 
         /**

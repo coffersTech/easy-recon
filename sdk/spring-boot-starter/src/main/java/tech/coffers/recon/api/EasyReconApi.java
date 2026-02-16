@@ -2,6 +2,10 @@ package tech.coffers.recon.api;
 
 import tech.coffers.recon.api.result.PageResult;
 import tech.coffers.recon.api.result.ReconResult;
+import tech.coffers.recon.api.enums.PayStatusEnum;
+import tech.coffers.recon.api.enums.SplitStatusEnum;
+import tech.coffers.recon.api.enums.NotifyStatusEnum;
+import tech.coffers.recon.api.enums.RefundStatusEnum;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
 import tech.coffers.recon.core.service.RealtimeReconService;
 import tech.coffers.recon.core.service.TimingReconService;
@@ -50,16 +54,61 @@ public class EasyReconApi {
      * @param platformIncome 平台收入
      * @param payFee         支付手续费
      * @param splitDetails   分账详情
-     * @param payStatus      支付状态 (0: 处理中, 1: 成功, 2: 失败)
-     * @param splitStatus    分账状态 (0: 处理中, 1: 成功, 2: 失败)
-     * @param notifyStatus   通知状态 (0: 处理中, 1: 成功, 2: 失败)
+     * @param payStatus      支付状态
+     * @param splitStatus    分账状态
+     * @param notifyStatus   通知状态
      * @return 对账结果
      */
     public ReconResult reconOrder(String orderNo, BigDecimal payAmount, BigDecimal platformIncome,
-            BigDecimal payFee, Map<String, BigDecimal> splitDetails, Integer payStatus, Integer splitStatus,
-            Integer notifyStatus) {
+            BigDecimal payFee, Map<String, BigDecimal> splitDetails, PayStatusEnum payStatus,
+            SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
         return realtimeReconService.reconOrder(orderNo, payAmount, platformIncome, payFee, splitDetails,
                 payStatus, splitStatus, notifyStatus);
+    }
+
+    /**
+     * 异步对账订单
+     *
+     * @param orderNo        订单号
+     * @param payAmount      支付金额
+     * @param platformIncome 平台收入
+     * @param payFee         支付手续费
+     * @param merchantSplits 分账详情
+     * @param splitDetails   分账详情
+     * @param payStatus      支付状态
+     * @param splitStatus    分账状态
+     * @param notifyStatus   通知状态
+     * @return 对账结果
+     */
+    public CompletableFuture<ReconResult> reconOrderAsync(String orderNo, BigDecimal payAmount,
+            BigDecimal platformIncome,
+            BigDecimal payFee, Map<String, BigDecimal> splitDetails, PayStatusEnum payStatus,
+            SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
+        return realtimeReconService.reconOrderAsync(orderNo, payAmount, platformIncome, payFee, splitDetails,
+                payStatus, splitStatus, notifyStatus);
+    }
+
+    /**
+     * 对账通知回调
+     *
+     * @param orderNo      订单号
+     * @param merchantId   商户号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知状态
+     * @param notifyResult 通知返回结果
+     * @return 对账结果
+     */
+    public ReconResult reconNotify(String orderNo, String merchantId, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
+        return realtimeReconService.reconNotify(orderNo, merchantId, notifyUrl, notifyStatus, notifyResult);
+    }
+
+    /**
+     * 异步对账通知回调
+     */
+    public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
+        return realtimeReconService.reconNotifyAsync(orderNo, merchantId, notifyUrl, notifyStatus, notifyResult);
     }
 
     /**
@@ -97,11 +146,10 @@ public class EasyReconApi {
      * @param splitDetails 退款分账详情
      * @return 对账结果 (true: 成功, false: 失败)
      */
-    public boolean reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime,
-            int refundStatus, Map<String, BigDecimal> splitDetails) {
-        ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount,
+    public ReconResult reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime,
+            RefundStatusEnum refundStatus, Map<String, BigDecimal> splitDetails) {
+        return realtimeReconService.reconRefund(orderNo, refundAmount,
                 refundTime, refundStatus, splitDetails);
-        return result.isSuccess();
     }
 
     /**
@@ -114,12 +162,11 @@ public class EasyReconApi {
      * @param splitDetails 退款分账详情
      * @return 异步对账结果
      */
-    public CompletableFuture<Boolean> reconRefundAsync(String orderNo, BigDecimal refundAmount,
-            LocalDateTime refundTime, int refundStatus,
+    public CompletableFuture<ReconResult> reconRefundAsync(String orderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime, RefundStatusEnum refundStatus,
             Map<String, BigDecimal> splitDetails) {
         return realtimeReconService
-                .reconRefundAsync(orderNo, refundAmount, refundTime, refundStatus, splitDetails)
-                .thenApply(ReconResult::isSuccess);
+                .reconRefundAsync(orderNo, refundAmount, refundTime, refundStatus, splitDetails);
     }
 
     // ==================== 定时对账触发 ====================

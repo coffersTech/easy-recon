@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_main` (
   `pay_status` TINYINT DEFAULT 0 COMMENT '支付状态：0=处理中，1=成功，2=失败',
   `split_status` TINYINT DEFAULT 0 COMMENT '分账状态：0=处理中，1=成功，2=失败',
   `notify_status` TINYINT DEFAULT 0 COMMENT '通知状态：0=处理中，1=成功，2=失败',
+  `notify_result` TEXT COMMENT '最新通知结果',
   `recon_status` TINYINT NOT NULL DEFAULT 0 COMMENT '对账状态：0=待对账，1=成功，2=失败',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

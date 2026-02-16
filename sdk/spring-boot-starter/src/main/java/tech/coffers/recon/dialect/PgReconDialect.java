@@ -14,13 +14,26 @@ public class PgReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderMainSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, pay_amount, pay_amount_fen, platform_income, platform_income_fen, pay_fee, pay_fee_fen, split_total_amount, split_total_amount_fen, pay_status, split_status, notify_status, recon_status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + " (order_no, pay_amount, pay_amount_fen, platform_income, platform_income_fen, pay_fee, pay_fee_fen, split_total_amount, split_total_amount_fen, pay_status, split_status, notify_status, notify_result, recon_status, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "ON CONFLICT (order_no) DO UPDATE SET "
+                + "pay_amount = EXCLUDED.pay_amount, pay_amount_fen = EXCLUDED.pay_amount_fen, "
+                + "platform_income = EXCLUDED.platform_income, platform_income_fen = EXCLUDED.platform_income_fen, "
+                + "pay_fee = EXCLUDED.pay_fee, pay_fee_fen = EXCLUDED.pay_fee_fen, "
+                + "split_total_amount = EXCLUDED.split_total_amount, split_total_amount_fen = EXCLUDED.split_total_amount_fen, "
+                + "pay_status = EXCLUDED.pay_status, split_status = EXCLUDED.split_status, "
+                + "notify_status = EXCLUDED.notify_status, notify_result = EXCLUDED.notify_result, "
+                + "recon_status = EXCLUDED.recon_status, update_time = EXCLUDED.update_time";
     }
 
     @Override
     public String getInsertOrderSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, merchant_id, split_amount, split_amount_fen, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)";
+                + " (order_no, merchant_id, split_amount, split_amount_fen, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?) "
+                + "ON CONFLICT (order_no, merchant_id) DO UPDATE SET "
+                + "split_amount = EXCLUDED.split_amount, split_amount_fen = EXCLUDED.split_amount_fen, "
+                + "update_time = EXCLUDED.update_time";
     }
 
     @Override

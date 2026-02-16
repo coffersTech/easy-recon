@@ -89,6 +89,11 @@ public class ReconOrderMainDO {
     private Integer notifyStatus;
 
     /**
+     * 最新一次通知结果
+     */
+    private String notifyResult;
+
+    /**
      * 获取对账状态枚举
      *
      * @return 对账状态枚举

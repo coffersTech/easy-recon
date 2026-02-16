@@ -16,10 +16,14 @@ public class ReconResult {
     private String orderNo;
 
     public static ReconResult success(String orderNo) {
+        return success(orderNo, "对账成功");
+    }
+
+    public static ReconResult success(String orderNo, String message) {
         ReconResult result = new ReconResult();
         result.setSuccess(true);
         result.setCode(200);
-        result.setMessage("对账成功");
+        result.setMessage(message);
         result.setOrderNo(orderNo);
         return result;
     }

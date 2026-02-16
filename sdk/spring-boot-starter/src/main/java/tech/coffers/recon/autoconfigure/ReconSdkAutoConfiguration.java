@@ -12,6 +12,12 @@ import tech.coffers.recon.core.service.RealtimeReconService;
 import tech.coffers.recon.core.service.TimingReconService;
 import tech.coffers.recon.dialect.ReconDatabaseDialect;
 import tech.coffers.recon.dialect.ReconDialectFactory;
+import tech.coffers.recon.dialect.PgReconDialect;
+import tech.coffers.recon.dialect.MySqlReconDialect;
+import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.Location;
 import tech.coffers.recon.repository.jdbc.JdbcReconRepository;
 import tech.coffers.recon.repository.ReconRepository;
 
@@ -193,6 +199,37 @@ public class ReconSdkAutoConfiguration {
     public EasyReconApi easyReconApi(RealtimeReconService realtimeReconService,
             TimingReconService timingReconService, ReconRepository reconRepository) {
         return new EasyReconApi(realtimeReconService, timingReconService, reconRepository);
+    }
+
+    /**
+     * 配置 Flyway 迁移路径
+     * <p>
+     * 根据检测到的数据库类型，动态设置 Flyway 的迁移脚本位置
+     * </p>
+     */
+    @Bean
+    @ConditionalOnClass(Flyway.class)
+    public FlywayConfigurationCustomizer reconFlywayConfigurationCustomizer(ReconDatabaseDialect dialect) {
+        return configuration -> {
+            String location;
+            if (dialect instanceof PgReconDialect) {
+                location = "classpath:easy-recon/migration/postgresql";
+            } else if (dialect instanceof MySqlReconDialect) {
+                location = "classpath:easy-recon/migration/mysql";
+            } else {
+                location = "classpath:easy-recon/migration/mysql";
+            }
+
+            // 获取现有的 locations 并追加 SDK 的路径
+            Location[] currentLocations = configuration.getLocations();
+            Location[] newLocations = new Location[currentLocations.length + 1];
+            System.arraycopy(currentLocations, 0, newLocations, 0, currentLocations.length);
+            newLocations[currentLocations.length] = new Location(location);
+
+            configuration.locations(newLocations);
+            configuration.baselineOnMigrate(true);
+            configuration.baselineVersion("0");
+        };
     }
 
 }

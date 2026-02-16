@@ -2,7 +2,9 @@ package tech.coffers.recon.core.service;
 
 import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
-import tech.coffers.recon.api.enums.BusinessStatusEnum;
+import tech.coffers.recon.api.enums.PayStatusEnum;
+import tech.coffers.recon.api.enums.SplitStatusEnum;
+import tech.coffers.recon.api.enums.NotifyStatusEnum;
 import tech.coffers.recon.repository.ReconRepository;
 
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
@@ -95,9 +97,9 @@ public class TimingReconService {
             List<ReconOrderSplitSubDO> splitSubDOs = reconRepository.getOrderSplitSubByOrderNo(order.getOrderNo());
 
             // 2. 检查业务状态：如果是处理中，则跳过本次定时处理
-            if (BusinessStatusEnum.fromCode(order.getPayStatus()) == BusinessStatusEnum.PROCESSING ||
-                    BusinessStatusEnum.fromCode(order.getSplitStatus()) == BusinessStatusEnum.PROCESSING ||
-                    BusinessStatusEnum.fromCode(order.getNotifyStatus()) == BusinessStatusEnum.PROCESSING) {
+            if (PayStatusEnum.fromCode(order.getPayStatus()) == PayStatusEnum.PROCESSING ||
+                    SplitStatusEnum.fromCode(order.getSplitStatus()) == SplitStatusEnum.PROCESSING ||
+                    NotifyStatusEnum.fromCode(order.getNotifyStatus()) == NotifyStatusEnum.PROCESSING) {
                 return;
             }
 

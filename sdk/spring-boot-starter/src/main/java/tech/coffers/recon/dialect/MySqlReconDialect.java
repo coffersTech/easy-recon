@@ -14,13 +14,26 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderMainSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, pay_amount, pay_amount_fen, platform_income, platform_income_fen, pay_fee, pay_fee_fen, split_total_amount, split_total_amount_fen, pay_status, split_status, notify_status, recon_status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + " (order_no, pay_amount, pay_amount_fen, platform_income, platform_income_fen, pay_fee, pay_fee_fen, split_total_amount, split_total_amount_fen, pay_status, split_status, notify_status, notify_result, recon_status, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE "
+                + "pay_amount = VALUES(pay_amount), pay_amount_fen = VALUES(pay_amount_fen), "
+                + "platform_income = VALUES(platform_income), platform_income_fen = VALUES(platform_income_fen), "
+                + "pay_fee = VALUES(pay_fee), pay_fee_fen = VALUES(pay_fee_fen), "
+                + "split_total_amount = VALUES(split_total_amount), split_total_amount_fen = VALUES(split_total_amount_fen), "
+                + "pay_status = VALUES(pay_status), split_status = VALUES(split_status), "
+                + "notify_status = VALUES(notify_status), notify_result = VALUES(notify_result), "
+                + "recon_status = VALUES(recon_status), update_time = VALUES(update_time)";
     }
 
     @Override
     public String getInsertOrderSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, merchant_id, split_amount, split_amount_fen, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)";
+                + " (order_no, merchant_id, split_amount, split_amount_fen, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE "
+                + "split_amount = VALUES(split_amount), split_amount_fen = VALUES(split_amount_fen), "
+                + "update_time = VALUES(update_time)";
     }
 
     @Override

@@ -7,7 +7,10 @@ import org.mockito.MockitoAnnotations;
 import tech.coffers.recon.api.result.ReconResult;
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
 import tech.coffers.recon.entity.ReconOrderMainDO;
-import tech.coffers.recon.api.enums.BusinessStatusEnum;
+import tech.coffers.recon.api.enums.PayStatusEnum;
+import tech.coffers.recon.api.enums.SplitStatusEnum;
+import tech.coffers.recon.api.enums.NotifyStatusEnum;
+import tech.coffers.recon.api.enums.RefundStatusEnum;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
 import tech.coffers.recon.repository.ReconRepository;
 
@@ -62,9 +65,6 @@ class RealtimeReconServiceTest {
                 BigDecimal payFee = new BigDecimal("1.00");
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("94.00"));
-                Integer payStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer splitStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer notifyStatus = BusinessStatusEnum.SUCCESS.getCode();
 
                 // 模拟存储库方法
                 when(reconRepository.saveOrderMain(any())).thenReturn(true);
@@ -73,7 +73,8 @@ class RealtimeReconServiceTest {
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
-                                splitDetails, payStatus, splitStatus, notifyStatus);
+                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
                 assertTrue(result.isSuccess());
@@ -98,14 +99,12 @@ class RealtimeReconServiceTest {
                 BigDecimal payFee = new BigDecimal("1.00");
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("94.00"));
-                Integer payStatus = BusinessStatusEnum.FAILURE.getCode(); // 支付状态失败
-                Integer splitStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer notifyStatus = BusinessStatusEnum.SUCCESS.getCode();
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
-                                splitDetails, payStatus, splitStatus, notifyStatus);
+                                splitDetails, PayStatusEnum.FAILURE, SplitStatusEnum.SUCCESS,
+                                NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
                 assertFalse(result.isSuccess());
@@ -130,14 +129,12 @@ class RealtimeReconServiceTest {
                 BigDecimal payFee = new BigDecimal("1.00");
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("94.00"));
-                Integer payStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer splitStatus = BusinessStatusEnum.FAILURE.getCode(); // 分账状态失败
-                Integer notifyStatus = BusinessStatusEnum.SUCCESS.getCode();
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
-                                splitDetails, payStatus, splitStatus, notifyStatus);
+                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.FAILURE,
+                                NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
                 assertFalse(result.isSuccess());
@@ -162,14 +159,12 @@ class RealtimeReconServiceTest {
                 BigDecimal payFee = new BigDecimal("1.00");
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("94.00"));
-                Integer payStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer splitStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer notifyStatus = BusinessStatusEnum.FAILURE.getCode(); // 通知状态失败
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
-                                splitDetails, payStatus, splitStatus, notifyStatus);
+                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                NotifyStatusEnum.FAILURE);
 
                 // 验证结果
                 assertFalse(result.isSuccess());
@@ -194,14 +189,12 @@ class RealtimeReconServiceTest {
                 BigDecimal payFee = new BigDecimal("1.00");
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("90.00")); // 分账金额错误，应该是 94.00
-                Integer payStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer splitStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer notifyStatus = BusinessStatusEnum.SUCCESS.getCode();
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
-                                splitDetails, payStatus, splitStatus, notifyStatus);
+                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
                 assertFalse(result.isSuccess());
@@ -225,9 +218,6 @@ class RealtimeReconServiceTest {
                 BigDecimal payFee = new BigDecimal("1.00");
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("94.00"));
-                Integer payStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer splitStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer notifyStatus = BusinessStatusEnum.SUCCESS.getCode();
 
                 // 模拟存储库方法抛出异常
                 when(reconRepository.saveOrderMain(any())).thenThrow(new RuntimeException("数据库操作失败"));
@@ -235,7 +225,8 @@ class RealtimeReconServiceTest {
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
                                 payFee,
-                                splitDetails, payStatus, splitStatus, notifyStatus);
+                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
                 assertFalse(result.isSuccess());
@@ -256,7 +247,6 @@ class RealtimeReconServiceTest {
                 String merchantId = "MERCHANT_001";
                 BigDecimal refundAmount = new BigDecimal("50.00");
                 LocalDateTime refundTime = LocalDateTime.now();
-                int refundStatus = 1;
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("50.00"));
 
@@ -270,7 +260,8 @@ class RealtimeReconServiceTest {
                 when(reconRepository.batchSaveOrderRefundSplitSub(any())).thenReturn(true);
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount, refundTime, refundStatus,
+                ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount, refundTime,
+                                RefundStatusEnum.SUCCESS,
                                 splitDetails);
 
                 // 验证结果
@@ -281,7 +272,8 @@ class RealtimeReconServiceTest {
 
                 // 验证调用
                 verify(reconRepository, times(1)).getOrderMainByOrderNo(orderNo);
-                verify(reconRepository, times(1)).updateReconRefundStatus(eq(orderNo), eq(refundStatus),
+                verify(reconRepository, times(1)).updateReconRefundStatus(eq(orderNo),
+                                eq(RefundStatusEnum.SUCCESS.getCode()),
                                 eq(refundAmount),
                                 eq(refundTime));
                 verify(reconRepository, times(1)).batchSaveOrderRefundSplitSub(any());
@@ -294,7 +286,6 @@ class RealtimeReconServiceTest {
 
                 BigDecimal refundAmount = new BigDecimal("150.00"); // 退款 > 实付
                 LocalDateTime refundTime = LocalDateTime.now();
-                int refundStatus = 1;
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
 
                 // 模拟原订单
@@ -304,7 +295,8 @@ class RealtimeReconServiceTest {
                 when(reconRepository.getOrderMainByOrderNo(orderNo)).thenReturn(orderMainDO);
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount, refundTime, refundStatus,
+                ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount, refundTime,
+                                RefundStatusEnum.SUCCESS,
                                 splitDetails);
 
                 // 验证结果
@@ -327,16 +319,13 @@ class RealtimeReconServiceTest {
                 Map<String, BigDecimal> splitDetails = new HashMap<>();
                 splitDetails.put(merchantId, new BigDecimal("94.00"));
 
-                Integer payStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer splitStatus = BusinessStatusEnum.SUCCESS.getCode();
-                Integer notifyStatus = BusinessStatusEnum.PROCESSING.getCode(); // 通知处理中
-
                 // 模拟存储库方法
                 when(reconRepository.saveOrderMain(any())).thenReturn(true);
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, payStatus, splitStatus, notifyStatus);
+                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                NotifyStatusEnum.PROCESSING);
 
                 // 验证结果
                 assertTrue(result.isSuccess());

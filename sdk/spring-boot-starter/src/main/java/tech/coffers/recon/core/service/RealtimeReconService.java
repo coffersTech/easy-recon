@@ -7,7 +7,11 @@ import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
 import tech.coffers.recon.entity.ReconOrderSplitSubDO;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
-import tech.coffers.recon.api.enums.BusinessStatusEnum;
+import tech.coffers.recon.api.enums.PayStatusEnum;
+import tech.coffers.recon.api.enums.SplitStatusEnum;
+import tech.coffers.recon.api.enums.NotifyStatusEnum;
+import tech.coffers.recon.api.enums.RefundStatusEnum;
+import tech.coffers.recon.entity.ReconNotifyLogDO;
 import tech.coffers.recon.repository.ReconRepository;
 
 import java.math.BigDecimal;
@@ -58,32 +62,36 @@ public class RealtimeReconService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ReconResult reconOrder(String orderNo, BigDecimal payAmount, BigDecimal platformIncome,
-            BigDecimal payFee, Map<String, BigDecimal> splitDetails, Integer payStatus, Integer splitStatus,
-            Integer notifyStatus) {
+            BigDecimal payFee, Map<String, BigDecimal> splitDetails, PayStatusEnum payStatus,
+            SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
         try {
-            BusinessStatusEnum payEnum = BusinessStatusEnum.fromCode(payStatus);
-            BusinessStatusEnum splitEnum = BusinessStatusEnum.fromCode(splitStatus);
-            BusinessStatusEnum notifyEnum = BusinessStatusEnum.fromCode(notifyStatus);
+            PayStatusEnum payEnum = payStatus != null ? payStatus : PayStatusEnum.PROCESSING;
+            SplitStatusEnum splitEnum = splitStatus != null ? splitStatus : SplitStatusEnum.PROCESSING;
+            NotifyStatusEnum notifyEnum = notifyStatus != null ? notifyStatus : NotifyStatusEnum.PROCESSING;
 
             // 1. 校验是否涉及失败 (FAILURE 直接记录异常并返回失败)
-            if (payEnum == BusinessStatusEnum.FAILURE) {
+            if (payEnum == PayStatusEnum.FAILURE) {
                 recordException(orderNo, "SELF", "支付状态失败，对账失败", 1);
+                alarmService.sendReconAlarm(orderNo, "SELF", "支付状态失败，对账失败");
                 return ReconResult.fail(orderNo, "支付状态失败，对账失败");
             }
-            if (splitEnum == BusinessStatusEnum.FAILURE) {
+            if (splitEnum == SplitStatusEnum.FAILURE) {
                 recordException(orderNo, "SELF", "分账状态失败，对账失败", 2);
+                alarmService.sendReconAlarm(orderNo, "SELF", "分账状态失败，对账失败");
                 return ReconResult.fail(orderNo, "分账状态失败，对账失败");
             }
-            if (notifyEnum == BusinessStatusEnum.FAILURE) {
+            if (notifyEnum == NotifyStatusEnum.FAILURE) {
                 recordException(orderNo, "SELF", "通知状态失败，对账失败", 3);
+                alarmService.sendReconAlarm(orderNo, "SELF", "通知状态失败，对账失败");
                 return ReconResult.fail(orderNo, "通知状态失败，对账失败");
             }
 
-            // 2. 检查是否有处理中的状态 (PROCESSING 记录为 PENDING，不产生异常记录)
-            boolean isAnyProcessing = payEnum == BusinessStatusEnum.PROCESSING ||
-                    splitEnum == BusinessStatusEnum.PROCESSING ||
-                    notifyEnum == BusinessStatusEnum.PROCESSING;
-
+            // 确定整体对账状态
+            ReconStatusEnum reconStatus = ReconStatusEnum.SUCCESS;
+            if (payEnum == PayStatusEnum.PROCESSING || splitEnum == SplitStatusEnum.PROCESSING
+                    || notifyEnum == NotifyStatusEnum.PROCESSING) {
+                reconStatus = ReconStatusEnum.PENDING;
+            }
             // 3. 计算金额 (仅在全部成功时才需要强一致性校验)
             BigDecimal splitTotal = BigDecimal.ZERO;
             if (splitDetails != null) {
@@ -92,17 +100,12 @@ public class RealtimeReconService {
                 }
             }
 
-            ReconStatusEnum finalReconStatus = ReconStatusEnum.SUCCESS;
-
-            if (!isAnyProcessing) {
+            if (reconStatus == ReconStatusEnum.SUCCESS) { // Only check amount if all statuses are successful
                 BigDecimal calcAmount = splitTotal.add(platformIncome).add(payFee);
                 if (payAmount.subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
                     recordException(orderNo, "SELF", "金额校验失败，实付金额与计算金额不一致", 4);
                     return ReconResult.fail(orderNo, "金额校验失败，实付金额与计算金额不一致");
                 }
-            } else {
-                // 如果还处于处理中，则对账状态标记为 PENDING
-                finalReconStatus = ReconStatusEnum.PENDING;
             }
 
             // 4. 保存订单主记录
@@ -115,7 +118,7 @@ public class RealtimeReconService {
             orderMainDO.setPayStatus(payEnum.getCode());
             orderMainDO.setSplitStatus(splitEnum.getCode());
             orderMainDO.setNotifyStatus(notifyEnum.getCode());
-            orderMainDO.setReconStatus(finalReconStatus.getCode());
+            orderMainDO.setReconStatus(reconStatus.getCode());
             orderMainDO.setCreateTime(LocalDateTime.now());
             orderMainDO.setUpdateTime(LocalDateTime.now());
             reconRepository.saveOrderMain(orderMainDO);
@@ -142,6 +145,16 @@ public class RealtimeReconService {
             recordException(orderNo, "SELF", "对账处理异常: " + e.getMessage(), 5);
             return ReconResult.fail(orderNo, "对账处理异常: " + e.getMessage());
         }
+    }
+
+    /**
+     * 异步对账订单
+     */
+    public CompletableFuture<ReconResult> reconOrderAsync(String orderNo, BigDecimal payAmount,
+            BigDecimal platformIncome, BigDecimal payFee, Map<String, BigDecimal> splitDetails,
+            PayStatusEnum payStatus, SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
+        return CompletableFuture.supplyAsync(() -> reconOrder(orderNo, payAmount, platformIncome, payFee, splitDetails,
+                payStatus, splitStatus, notifyStatus), executorService);
     }
 
     /**
@@ -185,8 +198,9 @@ public class RealtimeReconService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ReconResult reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime,
-            int refundStatus, Map<String, BigDecimal> splitDetails) {
+            RefundStatusEnum refundStatus, Map<String, BigDecimal> splitDetails) {
         try {
+            RefundStatusEnum refundEnum = refundStatus != null ? refundStatus : RefundStatusEnum.PROCESSING;
             // 1. 查询原订单
             ReconOrderMainDO orderMainDO = reconRepository.getOrderMainByOrderNo(orderNo);
             if (orderMainDO == null) {
@@ -215,7 +229,7 @@ public class RealtimeReconService {
             }
 
             // 4. 更新订单主记录的退款状态
-            boolean updateSuccess = reconRepository.updateReconRefundStatus(orderNo, refundStatus, refundAmount,
+            boolean updateSuccess = reconRepository.updateReconRefundStatus(orderNo, refundEnum.getCode(), refundAmount,
                     refundTime);
             if (!updateSuccess) {
                 return ReconResult.fail(orderNo, "更新退款状态失败");
@@ -256,8 +270,7 @@ public class RealtimeReconService {
      * @return 异步对账结果
      */
     public CompletableFuture<ReconResult> reconRefundAsync(String orderNo, BigDecimal refundAmount,
-            LocalDateTime refundTime,
-            int refundStatus, Map<String, BigDecimal> splitDetails) {
+            LocalDateTime refundTime, RefundStatusEnum refundStatus, Map<String, BigDecimal> splitDetails) {
         return CompletableFuture.supplyAsync(
                 () -> reconRefund(orderNo, refundAmount, refundTime, refundStatus, splitDetails), executorService);
     }
@@ -278,17 +291,23 @@ public class RealtimeReconService {
                 return false;
             }
 
-            // 2. 检查状态：只有 失败(2) 或 异常(0-初始态，视情况而定) 可以重试
-            // 这里假设 1=成功, 2=失败, 0=初始
-            if (orderMainDO.getReconStatus() == 1) {
-                return true; // 已经成功的直接返回成功
+            // 2. 检查状态：只有 失败(2) 或 待处理(PENDING/0) 可以重试
+            if (orderMainDO.getReconStatus() == ReconStatusEnum.SUCCESS.getCode()) {
+                return true;
             }
 
-            // 3. 获取分账子记录
+            // 3. 检查业务处理状态
+            if (orderMainDO.getPayStatus() == PayStatusEnum.PROCESSING.getCode() ||
+                    orderMainDO.getSplitStatus() == SplitStatusEnum.PROCESSING.getCode() ||
+                    orderMainDO.getNotifyStatus() == NotifyStatusEnum.PROCESSING.getCode()) {
+                // 仍有处理中的步骤，对账保持 PENDING
+                return false;
+            }
+
+            // 4. 获取分账子记录
             List<ReconOrderSplitSubDO> splitSubDOs = reconRepository.getOrderSplitSubByOrderNo(orderNo);
 
-            // 4. 执行校验逻辑 (复用 TimingReconService 的逻辑，或者提取公共逻辑)
-            // 这里为了简单，直接内嵌校验逻辑
+            // 5. 执行校验逻辑
             BigDecimal splitTotal = BigDecimal.ZERO;
             if (splitSubDOs != null) {
                 for (ReconOrderSplitSubDO sub : splitSubDOs) {
@@ -299,11 +318,11 @@ public class RealtimeReconService {
 
             if (orderMainDO.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
                 recordException(orderNo, "SELF", "重试对账失败：金额校验不一致", 4);
-                reconRepository.updateReconStatus(orderNo, ReconStatusEnum.FAILURE); // 保持/更新为失败
+                reconRepository.updateReconStatus(orderNo, ReconStatusEnum.FAILURE);
                 return false;
             }
 
-            // 5. 更新状态为成功
+            // 6. 更新状态为成功
             return reconRepository.updateReconStatus(orderNo, ReconStatusEnum.SUCCESS);
 
         } catch (Exception e) {
@@ -311,6 +330,56 @@ public class RealtimeReconService {
             recordException(orderNo, "SELF", "重试对账异常: " + e.getMessage(), 5);
             return false;
         }
+    }
+
+    /**
+     * 对账通知回调
+     *
+     * @param orderNo      订单号
+     * @param merchantId   商户号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知状态 (0: 失败, 1: 成功, 2: 重新通知中)
+     * @param notifyResult 通知返回结果
+     * @return 对账结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReconResult reconNotify(String orderNo, String merchantId, String notifyUrl, NotifyStatusEnum notifyStatus,
+            String notifyResult) {
+        try {
+            NotifyStatusEnum notifyEnum = notifyStatus != null ? notifyStatus : NotifyStatusEnum.PROCESSING;
+
+            // 1. 更新数据库中的通知状态 (使用专门的字段)
+            boolean updated = reconRepository.updateNotifyStatus(orderNo, notifyEnum.getCode(), notifyResult);
+
+            // 2. 记录通知详细日志
+            ReconNotifyLogDO notifyLogDO = new ReconNotifyLogDO();
+            notifyLogDO.setOrderNo(orderNo);
+            notifyLogDO.setMerchantId(merchantId);
+            notifyLogDO.setNotifyUrl(notifyUrl);
+            notifyLogDO.setNotifyStatus(notifyEnum.getCode());
+            notifyLogDO.setNotifyResult(notifyResult);
+            notifyLogDO.setCreateTime(LocalDateTime.now());
+            notifyLogDO.setUpdateTime(LocalDateTime.now());
+            reconRepository.saveNotifyLog(notifyLogDO);
+
+            // 3. 自动触发一次重对账检查
+            boolean retrySuccess = retryRecon(orderNo);
+
+            return retrySuccess ? ReconResult.success(orderNo)
+                    : ReconResult.success(orderNo, "通知状态已更新，由于其他业务状态未完成，对账仍处于 Pending");
+        } catch (Exception e) {
+            log.error("通知回调处理异常", e);
+            return ReconResult.fail(orderNo, "通知处理异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 异步对账通知回调
+     */
+    public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
+        return CompletableFuture.supplyAsync(
+                () -> reconNotify(orderNo, merchantId, notifyUrl, notifyStatus, notifyResult), executorService);
     }
 
     private void recordException(String orderNo, String merchantId, String msg, int step) {

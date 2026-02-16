@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -64,9 +65,10 @@ public class JdbcReconRepository implements ReconRepository {
                 ps.setInt(10, orderMainDO.getPayStatus() != null ? orderMainDO.getPayStatus() : 0);
                 ps.setInt(11, orderMainDO.getSplitStatus() != null ? orderMainDO.getSplitStatus() : 0);
                 ps.setInt(12, orderMainDO.getNotifyStatus() != null ? orderMainDO.getNotifyStatus() : 0);
-                ps.setInt(13, orderMainDO.getReconStatus());
-                ps.setObject(14, orderMainDO.getCreateTime());
-                ps.setObject(15, orderMainDO.getUpdateTime());
+                ps.setString(13, orderMainDO.getNotifyResult());
+                ps.setInt(14, orderMainDO.getReconStatus());
+                ps.setObject(15, orderMainDO.getCreateTime());
+                ps.setObject(16, orderMainDO.getUpdateTime());
             });
             return rows > 0;
         } catch (Exception e) {
@@ -131,7 +133,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql, new OrderSplitSubRowMapper(), orderNo);
         } catch (Exception e) {
             log.error("查询分账子记录失败，订单号: {}", orderNo, e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -224,7 +226,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql, new OrderMainRowMapper());
         } catch (Exception e) {
             log.error("查询待核账订单失败，日期: {}", dateStr, e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -237,6 +239,25 @@ public class JdbcReconRepository implements ReconRepository {
             return rows > 0;
         } catch (Exception e) {
             log.error("更新对账状态失败，订单号: {}", orderNo, e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateNotifyStatus(String orderNo, int notifyStatus) {
+        return updateNotifyStatus(orderNo, notifyStatus, null);
+    }
+
+    @Override
+    public boolean updateNotifyStatus(String orderNo, int notifyStatus, String notifyResult) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_main";
+            String sql = "UPDATE " + tableName
+                    + " SET notify_status = ?, notify_result = ?, update_time = ? WHERE order_no = ?";
+            int rows = jdbcTemplate.update(sql, notifyStatus, notifyResult, LocalDateTime.now(), orderNo);
+            return rows > 0;
+        } catch (Exception e) {
+            log.error("更新通知状态失败", e);
             return false;
         }
     }
@@ -262,7 +283,8 @@ public class JdbcReconRepository implements ReconRepository {
             int limit) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
-            StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE DATE(create_time) = ?");
+            StringBuilder sql = new StringBuilder(
+                    "SELECT * FROM " + tableName + " WHERE DATE(create_time) = CAST(? AS DATE)");
 
             // 构建参数
             List<Object> params = new ArrayList<>();
@@ -282,7 +304,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql.toString(), new OrderMainRowMapper(), params.toArray());
         } catch (Exception e) {
             log.error("根据日期查询对账订单失败，日期: {}", dateStr, e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -310,7 +332,7 @@ public class JdbcReconRepository implements ReconRepository {
                     sql.append(" WHERE");
                     hasWhere = true;
                 }
-                sql.append(" DATE(create_time) >= ?");
+                sql.append(" DATE(create_time) >= CAST(? AS DATE)");
             }
 
             if (endDate != null && !endDate.isEmpty()) {
@@ -320,7 +342,7 @@ public class JdbcReconRepository implements ReconRepository {
                     sql.append(" WHERE");
                     hasWhere = true;
                 }
-                sql.append(" DATE(create_time) <= ?");
+                sql.append(" DATE(create_time) <= CAST(? AS DATE)");
             }
 
             if (exceptionStep != null) {
@@ -341,7 +363,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql.toString(), new ExceptionRowMapper(), params.toArray());
         } catch (Exception e) {
             log.error("查询对账异常记录失败", e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -353,7 +375,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql, new ExceptionRowMapper(), orderNo);
         } catch (Exception e) {
             log.error("根据订单号查询对账异常记录列表失败，订单号: {}", orderNo, e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -371,7 +393,7 @@ public class JdbcReconRepository implements ReconRepository {
                     "SUM(CASE WHEN recon_status = 0 THEN 1 ELSE 0 END) as init_count, " +
                     "SUM(pay_amount) as total_amount " +
                     "FROM " + tableName + " " +
-                    "WHERE DATE(create_time) = ?";
+                    "WHERE DATE(create_time) = CAST(? AS DATE)";
 
             return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
                 ReconSummaryDO summary = new ReconSummaryDO();
@@ -454,7 +476,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql, new OrderRefundSplitSubRowMapper(), orderNo);
         } catch (Exception e) {
             log.error("查询退款分账子记录失败，订单号: {}", orderNo, e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -514,7 +536,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql, new ReconRuleRowMapper());
         } catch (Exception e) {
             log.error("查询启用的对账规则失败", e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -526,7 +548,7 @@ public class JdbcReconRepository implements ReconRepository {
             return jdbcTemplate.query(sql, new ReconRuleRowMapper(), limit, offset);
         } catch (Exception e) {
             log.error("查询对账规则列表失败", e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
@@ -571,7 +593,8 @@ public class JdbcReconRepository implements ReconRepository {
     public long countOrderMainByDate(String dateStr, ReconStatusEnum reconStatus) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
-            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM " + tableName + " WHERE DATE(create_time) = ?");
+            StringBuilder sql = new StringBuilder(
+                    "SELECT COUNT(*) FROM " + tableName + " WHERE DATE(create_time) = CAST(? AS DATE)");
 
             // 构建参数
             List<Object> params = new ArrayList<>();
@@ -611,7 +634,7 @@ public class JdbcReconRepository implements ReconRepository {
                     sql.append(" WHERE");
                     hasWhere = true;
                 }
-                sql.append(" DATE(create_time) >= ?");
+                sql.append(" DATE(create_time) >= CAST(? AS DATE)");
             }
 
             if (endDate != null && !endDate.isEmpty()) {
@@ -621,7 +644,7 @@ public class JdbcReconRepository implements ReconRepository {
                     sql.append(" WHERE");
                     hasWhere = true;
                 }
-                sql.append(" DATE(create_time) <= ?");
+                sql.append(" DATE(create_time) <= CAST(? AS DATE)");
             }
 
             if (exceptionStep != null) {
@@ -677,6 +700,7 @@ public class JdbcReconRepository implements ReconRepository {
             mainDO.setPayStatus(rs.getInt("pay_status"));
             mainDO.setSplitStatus(rs.getInt("split_status"));
             mainDO.setNotifyStatus(rs.getInt("notify_status"));
+            mainDO.setNotifyResult(rs.getString("notify_result"));
             mainDO.setReconStatus(rs.getInt("recon_status"));
             mainDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
             mainDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));

@@ -38,7 +38,7 @@ jobs:
           gpg_private_key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           trust_level: ultimate  # 信任该密钥
-          cleanup: true  # 自动清理密钥，避免泄露
+
 
       # 构建并验证包（先打包，再部署）
       - name: Build with Maven

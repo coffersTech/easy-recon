@@ -18,7 +18,7 @@ jobs:
       id-token: write  # 用于Maven Central签名验证（可选）
 
     steps:
-    steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 

@@ -48,7 +48,7 @@ jobs:
 
       # 部署到Maven Central（按需保留，若不需要可删除）
       - name: Publish to Maven Central
-        run: mvn -B deploy --file sdk/spring-boot-starter/pom.xml -P release -Dgpg.passphrase=${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        run: mvn -B deploy --file sdk/spring-boot-starter/pom.xml -P release -Dgpg.passphrase="${{ secrets.MAVEN_GPG_PASSPHRASE }}"
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}

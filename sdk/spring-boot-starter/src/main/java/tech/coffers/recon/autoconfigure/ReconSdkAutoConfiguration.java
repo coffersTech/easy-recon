@@ -59,16 +59,17 @@ public class ReconSdkAutoConfiguration {
      * @return 线程池
      */
     @Bean
-    @ConditionalOnMissingBean(ExecutorService.class)
-    public ExecutorService executorService() {
+    @ConditionalOnMissingBean(name = "reconExecutorService")
+    public ExecutorService reconExecutorService() {
         int corePoolSize = properties.getThreadPool().getCorePoolSize();
         int maxPoolSize = properties.getThreadPool().getMaxPoolSize();
+        int queueCapacity = properties.getThreadPool().getQueueCapacity();
         return new ThreadPoolExecutor(
                 corePoolSize,
                 maxPoolSize,
                 60L,
                 java.util.concurrent.TimeUnit.SECONDS,
-                new java.util.concurrent.LinkedBlockingQueue<>(1000),
+                new java.util.concurrent.LinkedBlockingQueue<>(queueCapacity),
                 new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -188,7 +189,7 @@ public class ReconSdkAutoConfiguration {
     @ConditionalOnMissingBean(RealtimeReconService.class)
     public RealtimeReconService realtimeReconService(ReconRepository reconRepository,
             ExceptionRecordService exceptionRecordService, AlarmService alarmService, ReconSdkProperties properties,
-            ExecutorService executorService) {
+            @org.springframework.beans.factory.annotation.Qualifier("reconExecutorService") ExecutorService executorService) {
         return new RealtimeReconService(reconRepository, exceptionRecordService, alarmService, properties,
                 executorService);
     }

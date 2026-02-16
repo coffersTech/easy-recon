@@ -329,21 +329,21 @@ public class DemoApplication implements CommandLineRunner {
         splits.add(subB);
 
         // 1. 提交初始订单，初始化为 PROCESSING
-        System.out.println("1. 提交订单 (商户A: 100, 商户B: 200)，当前通知状态为 PROCESSING...");
+        // 1. 提交订单 (商户A: 100, 商户B: 200)，当前通知状态为 PROCESSING...
         easyReconApi.reconOrder(orderNo, payAmount, BigDecimal.ZERO, BigDecimal.ZERO, splits,
                 PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS, NotifyStatusEnum.PROCESSING);
         System.out.println("初始对账状态 (预期为 PENDING): " + easyReconApi.getReconStatus(orderNo));
 
-        // 2. 更新商户A的通知结果
-        System.out.println("2. 更新商户A通知成功...");
-        easyReconApi.reconNotify(orderNo, "MCH-A", orderNo + "-A", "https://callback.io/api/A",
-                NotifyStatusEnum.SUCCESS, "OK");
+        // 2. 更新商户A的通知结果 (使用简化接口，仅凭子订单号识别)
+        System.out.println("2. 更新商户A通知成功 (使用 reconNotifyBySub)...");
+        easyReconApi.reconNotifyBySub("MCH-A", orderNo + "-A", "https://callback.io/api/A", NotifyStatusEnum.SUCCESS,
+                "OK");
         System.out.println("商户A更新后状态 (预期为 PENDING): " + easyReconApi.getReconStatus(orderNo));
 
-        // 3. 更新商户B的通知结果
-        System.out.println("3. 更新商户B通知成功...");
-        easyReconApi.reconNotify(orderNo, "MCH-B", orderNo + "-B", "https://callback.io/api/B",
-                NotifyStatusEnum.SUCCESS, "OK");
+        // 3. 更新商户B的通知结果 (使用简化接口，仅凭子订单号识别)
+        System.out.println("3. 更新商户B通知成功 (使用 reconNotifyBySub)...");
+        easyReconApi.reconNotifyBySub("MCH-B", orderNo + "-B", "https://callback.io/api/B", NotifyStatusEnum.SUCCESS,
+                "OK");
         System.out.println("最终对账状态 (预期为 SUCCESS): " + easyReconApi.getReconStatus(orderNo));
     }
 

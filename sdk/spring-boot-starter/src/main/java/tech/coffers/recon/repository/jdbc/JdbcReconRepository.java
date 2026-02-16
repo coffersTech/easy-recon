@@ -308,6 +308,20 @@ public class JdbcReconRepository implements ReconRepository {
     }
 
     @Override
+    public String findOrderNoBySub(String merchantId, String subOrderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String sql = "SELECT order_no FROM " + tableName + " WHERE merchant_id = ? AND sub_order_no = ? LIMIT 1";
+            return jdbcTemplate.queryForObject(sql, String.class, merchantId, subOrderNo);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            return null;
+        } catch (Exception e) {
+            log.error("查询主订单号失败，商户号: {}，子订单号: {}", merchantId, subOrderNo, e);
+            return null;
+        }
+    }
+
+    @Override
     public Integer getReconStatus(String orderNo) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";

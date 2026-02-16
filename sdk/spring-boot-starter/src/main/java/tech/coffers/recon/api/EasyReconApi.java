@@ -103,6 +103,14 @@ public class EasyReconApi {
     }
 
     /**
+     * 对账通知回调 (根据商户号和子订单号识别)
+     */
+    public ReconResult reconNotifyBySub(String merchantId, String subOrderNo, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
+        return realtimeReconService.reconNotifyBySub(merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult);
+    }
+
+    /**
      * 对账通知回调 (带子订单号)
      */
     public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String notifyUrl,
@@ -116,6 +124,15 @@ public class EasyReconApi {
     public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
         return realtimeReconService.reconNotifyAsync(orderNo, merchantId, notifyUrl, notifyStatus, notifyResult);
+    }
+
+    /**
+     * 异步对账通知回调 (根据商户号和子订单号识别)
+     */
+    public CompletableFuture<ReconResult> reconNotifyBySubAsync(String merchantId, String subOrderNo,
+            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
+        return realtimeReconService.reconNotifyBySubAsync(merchantId, subOrderNo, notifyUrl, notifyStatus,
+                notifyResult);
     }
 
     /**

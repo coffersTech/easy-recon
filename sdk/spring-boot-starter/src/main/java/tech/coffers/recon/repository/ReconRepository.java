@@ -94,6 +94,15 @@ public interface ReconRepository {
         boolean updateReconStatus(String orderNo, ReconStatusEnum reconStatus);
 
         /**
+         * 根据商户号和子订单号查询主订单号
+         *
+         * @param merchantId 商户号
+         * @param subOrderNo 子订单号
+         * @return 主订单号 (如果不存在返回 null)
+         */
+        String findOrderNoBySub(String merchantId, String subOrderNo);
+
+        /**
          * 根据订单号查询对账状态
          *
          * @param orderNo 订单号

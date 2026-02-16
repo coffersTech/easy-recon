@@ -350,6 +350,22 @@ public class RealtimeReconService {
     }
 
     /**
+     * 对账通知回调 (通过商户号和子订单号识别)
+     *
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param notifyUrl    通知地址
+     * @param notifyStatus 通知状态
+     * @param notifyResult 通知返回结果
+     * @return 对账结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReconResult reconNotifyBySub(String merchantId, String subOrderNo, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
+        return reconNotify(null, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult);
+    }
+
+    /**
      * 对账通知回调 (带子订单号)
      *
      * @param orderNo      订单号
@@ -364,6 +380,18 @@ public class RealtimeReconService {
     public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
         try {
+            // 0. 如果 orderNo 为空，通过 merchantId 和 subOrderNo 反查
+            if ((orderNo == null || orderNo.isEmpty()) && merchantId != null && subOrderNo != null) {
+                orderNo = reconRepository.findOrderNoBySub(merchantId, subOrderNo);
+                if (orderNo == null) {
+                    return ReconResult.fail(null, "无法根据商户号和子订单号定位主订单");
+                }
+            }
+
+            if (orderNo == null || orderNo.isEmpty()) {
+                return ReconResult.fail(null, "订单号不能为空");
+            }
+
             NotifyStatusEnum notifyEnum = notifyStatus != null ? notifyStatus : NotifyStatusEnum.PROCESSING;
 
             // 1. 更新分账子表的通知状态
@@ -423,6 +451,16 @@ public class RealtimeReconService {
             String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
         return CompletableFuture.supplyAsync(
                 () -> reconNotify(orderNo, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult),
+                executorService);
+    }
+
+    /**
+     * 异步对账通知回调 (通过商户号和子订单号识别)
+     */
+    public CompletableFuture<ReconResult> reconNotifyBySubAsync(String merchantId, String subOrderNo,
+            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
+        return CompletableFuture.supplyAsync(
+                () -> reconNotify(null, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult),
                 executorService);
     }
 

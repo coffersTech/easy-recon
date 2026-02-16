@@ -28,7 +28,7 @@ jobs:
           distribution: 'temurin'
           cache: maven  # 缓存Maven依赖，加速构建
           server-id: ossrh  # Maven Central的服务器ID
-          server-id: github  # GitHub Packages的服务器ID
+
           settings-path: ${{ github.workspace }}/.github  # 生成settings.xml的路径
 
       # 核心修复：正确导入GPG密钥（替代无效的gpg-private-key参数）

@@ -35,15 +35,6 @@ public class TimingReconService {
         this.properties = properties;
     }
 
-    @org.springframework.scheduling.annotation.Scheduled(cron = "${easy-recon.timing-cron}")
-    public void scheduledTimingRecon() {
-        if (!properties.getTiming().isEnabled()) {
-            return;
-        }
-        // 默认核对昨天的账单
-        doTimingRecon(java.time.LocalDate.now().minusDays(1).toString());
-    }
-
     /**
      * 手动触发指定日期的定时对账
      * <p>

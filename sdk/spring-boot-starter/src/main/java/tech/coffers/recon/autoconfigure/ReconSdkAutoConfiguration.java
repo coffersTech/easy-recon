@@ -164,6 +164,20 @@ public class ReconSdkAutoConfiguration {
     }
 
     /**
+     * 创建定时对账任务调度器
+     *
+     * @param timingReconService 定时对账服务
+     * @return 定时对账任务调度器
+     */
+    @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "easy-recon.timing", name = "enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnMissingBean(tech.coffers.recon.core.scheduler.ReconTaskScheduler.class)
+    public tech.coffers.recon.core.scheduler.ReconTaskScheduler reconTaskScheduler(
+            TimingReconService timingReconService) {
+        return new tech.coffers.recon.core.scheduler.ReconTaskScheduler(timingReconService);
+    }
+
+    /**
      * 创建异常记录服务
      *
      * @param reconRepository 对账存储库

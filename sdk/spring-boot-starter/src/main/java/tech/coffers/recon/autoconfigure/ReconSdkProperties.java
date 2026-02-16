@@ -58,7 +58,7 @@ public class ReconSdkProperties {
         /**
          * 是否启用定时核账调度
          */
-        private boolean enabled = true;
+        private boolean enabled = false;
     }
 
     /**

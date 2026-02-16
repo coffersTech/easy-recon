@@ -66,6 +66,9 @@ public class DemoApplication implements CommandLineRunner {
         // 场景 9: 多商户分账及逐个通知闭环演示
         demoMultiMerchantClosure();
 
+        // 场景 10: 基于子订单识别的退款对账
+        demoRefundBySubRecon();
+
         // 等待异步任务执行完成
         Thread.sleep(2000);
         System.out.println("\n=== Easy Recon SDK 功能演示结束 ===");
@@ -306,7 +309,7 @@ public class DemoApplication implements CommandLineRunner {
 
         // 2. 使用专有接口更新通知结果
         System.out.println("2. 调用 reconNotify 接口更新异步通知结果...");
-        tech.coffers.recon.api.result.ReconResult result = easyReconApi.reconNotify(
+        ReconResult result = easyReconApi.reconNotify(
                 orderNo, "MCH-001", "https://callback.io/api", NotifyStatusEnum.SUCCESS, "SUCCESS");
 
         System.out.println("通知处理结果: " + (result.isSuccess() ? "成功" : "失败"));
@@ -352,6 +355,40 @@ public class DemoApplication implements CommandLineRunner {
         easyReconApi.reconNotifyBySub("MCH-B", orderNo + "-B", "https://callback.io/api/B", NotifyStatusEnum.SUCCESS,
                 "OK");
         System.out.println("最终对账状态 (预期为 SUCCESS): " + easyReconApi.getReconStatus(orderNo));
+    }
+
+    /**
+     * [场景 10] 基于子订单识别的退款对账
+     * 演示在只知道子订单号和商户号的情况下进行退款对账。
+     */
+    private void demoRefundBySubRecon() {
+        System.out.println("\n--- [场景 10] 基于子订单识别的退款对账 ---");
+        String orderNo = "ORD-SUB-REFUND-" + System.currentTimeMillis();
+        String subOrderNo = orderNo + "-S1";
+        String merchantId = "MCH-REFUND-001";
+
+        // 1. 创建原始订单
+        List<ReconOrderSplitSubDO> splits = new ArrayList<>();
+        ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+        sub.setSubOrderNo(subOrderNo);
+        sub.setMerchantId(merchantId);
+        sub.setSplitAmount(new BigDecimal("100.00"));
+        splits.add(sub);
+
+        easyReconApi.reconOrder(orderNo, new BigDecimal("100.00"), BigDecimal.ZERO, BigDecimal.ZERO, splits,
+                PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS, NotifyStatusEnum.SUCCESS);
+
+        // 2. 模拟退款对账 (仅凭 subOrderNo 和 merchantId，不再需要手动构造详情列表)
+        System.out.println("执行基于子订单的简化退款对账 (子订单: " + subOrderNo + ", 商户: " + merchantId + ")...");
+        ReconResult result = easyReconApi.reconRefundBySub(merchantId, subOrderNo, new BigDecimal("30.00"),
+                LocalDateTime.now(), RefundStatusEnum.SUCCESS);
+
+        if (result.isSuccess()) {
+            System.out.println("基于子订单的退款对账成功!");
+            System.out.println("最终对账状态: " + easyReconApi.getReconStatus(orderNo));
+        } else {
+            System.out.println("基于子订单的退款对账失败: " + result.getMessage());
+        }
     }
 
 }

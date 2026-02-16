@@ -248,6 +248,70 @@ public class EasyReconApi {
                 .reconRefundAsync(orderNo, refundAmount, refundTime, refundStatus, splitDetails);
     }
 
+    /**
+     * 执行退款对账 (基于子订单识别 - 简化版)
+     * <p>
+     * 适用于单商户/单账期直接针对某个子订单进行退款。
+     *
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param refundAmount 退款金额
+     * @param refundTime   退款时间
+     * @param refundStatus 退款状态
+     * @return 对账结果
+     */
+    public ReconResult reconRefundBySub(String merchantId, String subOrderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        return realtimeReconService.reconRefundBySub(merchantId, subOrderNo, refundAmount, refundTime, refundStatus);
+    }
+
+    /**
+     * 执行退款对账 (基于子订单识别 - 复杂版)
+     * <p>
+     * 适用于根据某个子订单识别主订单，但退款涉及多个子订单分账的情况。
+     *
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param refundAmount 退款总金额
+     * @param refundTime   退款时间
+     * @param refundStatus 退款状态
+     * @param splitDetails 退款分账详情
+     * @return 对账结果
+     */
+    public ReconResult reconRefundBySub(String merchantId, String subOrderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime, RefundStatusEnum refundStatus, List<ReconOrderRefundSplitSubDO> splitDetails) {
+        return realtimeReconService.reconRefundBySub(merchantId, subOrderNo, refundAmount, refundTime, refundStatus,
+                splitDetails);
+    }
+
+    /**
+     * 异步执行退款对账 (基于子订单识别 - 简化版)
+     */
+    public CompletableFuture<ReconResult> reconRefundBySubAsync(String merchantId, String subOrderNo,
+            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        return realtimeReconService.reconRefundBySubAsync(merchantId, subOrderNo, refundAmount, refundTime,
+                refundStatus);
+    }
+
+    /**
+     * 异步执行退款对账 (基于子订单识别 - 复杂版)
+     *
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param refundAmount 退款金额
+     * @param refundTime   退款时间
+     * @param refundStatus 退款状态
+     * @param splitDetails 退款分账详情
+     * @return 异步对账结果
+     */
+    public CompletableFuture<ReconResult> reconRefundBySubAsync(String merchantId, String subOrderNo,
+            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus,
+            List<ReconOrderRefundSplitSubDO> splitDetails) {
+        return realtimeReconService.reconRefundBySubAsync(merchantId, subOrderNo, refundAmount, refundTime,
+                refundStatus,
+                splitDetails);
+    }
+
     // ==================== 定时对账触发 ====================
 
     /**

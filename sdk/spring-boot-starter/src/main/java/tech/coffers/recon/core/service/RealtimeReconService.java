@@ -17,6 +17,7 @@ import tech.coffers.recon.repository.ReconRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import org.springframework.transaction.annotation.Transactional;
@@ -251,12 +252,72 @@ public class RealtimeReconService {
             }
 
             return ReconResult.success(orderNo);
-
         } catch (Exception e) {
             log.error("退款对账处理异常", e);
             recordException(orderNo, "SELF", "退款对账处理异常: " + e.getMessage(), 5);
             return ReconResult.fail(orderNo, "退款对账处理异常: " + e.getMessage());
         }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ReconResult reconRefundBySub(String merchantId, String subOrderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        return reconRefundBySub(merchantId, subOrderNo, refundAmount, refundTime, refundStatus, null);
+    }
+
+    /**
+     * 对账退款 (基于子订单识别)
+     * <p>
+     * 当无法直接获取 orderNo 时，可以通过商户号和子订单号识别主订单。
+     *
+     * @param merchantId   商户号
+     * @param subOrderNo   子订单号
+     * @param refundAmount 退款金额
+     * @param refundTime   退款时间
+     * @param refundStatus 退款状态
+     * @param splitDetails 退款分账详情 (可选。如果为 null，则自动使用参数中的商户和子订单号创建一条记录)
+     * @return 对账结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReconResult reconRefundBySub(String merchantId, String subOrderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime, RefundStatusEnum refundStatus, List<ReconOrderRefundSplitSubDO> splitDetails) {
+        String orderNo = reconRepository.findOrderNoBySub(merchantId, subOrderNo);
+        if (orderNo == null) {
+            return ReconResult.fail(null, "无法根据商户号和子订单号定位主订单");
+        }
+
+        // 如果未提供详情，自动构造
+        if (splitDetails == null || splitDetails.isEmpty()) {
+            splitDetails = new ArrayList<>();
+            ReconOrderRefundSplitSubDO subDO = new ReconOrderRefundSplitSubDO();
+            subDO.setMerchantId(merchantId);
+            subDO.setSubOrderNo(subOrderNo);
+            subDO.setRefundSplitAmount(refundAmount);
+            splitDetails.add(subDO);
+        }
+
+        return reconRefund(orderNo, refundAmount, refundTime, refundStatus, splitDetails);
+    }
+
+    /**
+     * 异步对账退款 (基于子订单识别 - 简化版)
+     */
+    public CompletableFuture<ReconResult> reconRefundBySubAsync(String merchantId, String subOrderNo,
+            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        return CompletableFuture.supplyAsync(
+                () -> reconRefundBySub(merchantId, subOrderNo, refundAmount, refundTime, refundStatus),
+                executorService);
+    }
+
+    /**
+     * 异步对账退款 (基于子订单识别)
+     */
+    public CompletableFuture<ReconResult> reconRefundBySubAsync(String merchantId, String subOrderNo,
+            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus,
+            List<ReconOrderRefundSplitSubDO> splitDetails) {
+        return CompletableFuture.supplyAsync(
+                () -> reconRefundBySub(merchantId, subOrderNo, refundAmount, refundTime, refundStatus, splitDetails),
+                executorService);
     }
 
     /**

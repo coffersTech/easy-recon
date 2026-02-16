@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import tech.coffers.recon.api.EasyReconApi;
 import tech.coffers.recon.api.result.ReconResult;
 import tech.coffers.recon.entity.ReconOrderMainDO;
+import tech.coffers.recon.entity.ReconOrderSplitSubDO;
 import tech.coffers.recon.entity.ReconSummaryDO;
 import tech.coffers.recon.api.enums.PayStatusEnum;
 import tech.coffers.recon.api.enums.SplitStatusEnum;
@@ -19,6 +20,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 @SpringBootApplication
 public class DemoApplication implements CommandLineRunner {
@@ -61,6 +64,9 @@ public class DemoApplication implements CommandLineRunner {
         // 场景 8: 专门的通知回调接口演示
         demoNotificationCallbackApi();
 
+        // 场景 9: 多商户分账及逐个通知闭环演示
+        demoMultiMerchantClosure();
+
         // 等待异步任务执行完成
         Thread.sleep(2000);
         System.out.println("\n=== Easy Recon SDK 功能演示结束 ===");
@@ -77,10 +83,20 @@ public class DemoApplication implements CommandLineRunner {
         BigDecimal platformIncome = BigDecimal.ZERO;
         BigDecimal payFee = BigDecimal.ZERO;
 
-        // 模拟多方分账明细
-        Map<String, BigDecimal> splitDetails = new HashMap<>();
-        splitDetails.put("MCH-SUB-001", new BigDecimal("200.00"));
-        splitDetails.put("MCH-SUB-002", new BigDecimal("100.00"));
+        // 模拟多方分账明细 (直接构建 DO 列表)
+        List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+
+        ReconOrderSplitSubDO sub1 = new ReconOrderSplitSubDO();
+        sub1.setSubOrderNo(orderNo + "-1");
+        sub1.setMerchantId("MCH-SUB-001");
+        sub1.setSplitAmount(new BigDecimal("200.00"));
+        splitDetails.add(sub1);
+
+        ReconOrderSplitSubDO sub2 = new ReconOrderSplitSubDO();
+        sub2.setSubOrderNo(orderNo + "-2");
+        sub2.setMerchantId("MCH-SUB-002");
+        sub2.setSplitAmount(new BigDecimal("100.00"));
+        splitDetails.add(sub2);
 
         // 调用对账接口 (支付状态、分账状态、通知状态均为 SUCCESS)
         ReconResult result = easyReconApi.reconOrder(
@@ -126,8 +142,12 @@ public class DemoApplication implements CommandLineRunner {
         System.out.println("\n--- [场景 3] 异步对账演示 ---");
         String asyncOrderNo = "ORD-ASYNC-" + System.currentTimeMillis();
 
-        Map<String, BigDecimal> splits = new HashMap<>();
-        splits.put("MCH-001", new BigDecimal("100.00"));
+        List<ReconOrderSplitSubDO> splits = new ArrayList<>();
+        ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+        sub.setSubOrderNo(asyncOrderNo + "-S1");
+        sub.setMerchantId("MCH-001");
+        sub.setSplitAmount(new BigDecimal("100.00"));
+        splits.add(sub);
 
         // 先创建一笔成功的订单，再进行异步退款对账演示
         easyReconApi.reconOrder(asyncOrderNo, new BigDecimal("100.00"), BigDecimal.ZERO, BigDecimal.ZERO,
@@ -152,9 +172,19 @@ public class DemoApplication implements CommandLineRunner {
         String errorOrderNo = "ORD-ERR-" + System.currentTimeMillis();
 
         BigDecimal payAmount = new BigDecimal("100.00");
-        Map<String, BigDecimal> mismatchSplits = new HashMap<>();
-        mismatchSplits.put("MCH-001", new BigDecimal("60.00"));
-        mismatchSplits.put("MCH-002", new BigDecimal("30.00")); // 合计为 90，与 100 不平
+        List<ReconOrderSplitSubDO> mismatchSplits = new ArrayList<>();
+
+        ReconOrderSplitSubDO s1 = new ReconOrderSplitSubDO();
+        s1.setSubOrderNo(errorOrderNo + "-1");
+        s1.setMerchantId("MCH-001");
+        s1.setSplitAmount(new BigDecimal("60.00"));
+        mismatchSplits.add(s1);
+
+        ReconOrderSplitSubDO s2 = new ReconOrderSplitSubDO();
+        s2.setSubOrderNo(errorOrderNo + "-2");
+        s2.setMerchantId("MCH-002");
+        s2.setSplitAmount(new BigDecimal("30.00")); // 合计为 90，与 100 不平
+        mismatchSplits.add(s2);
 
         ReconResult result = easyReconApi.reconOrder(errorOrderNo, payAmount, BigDecimal.ZERO, BigDecimal.ZERO,
                 mismatchSplits, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS, NotifyStatusEnum.SUCCESS);
@@ -221,11 +251,15 @@ public class DemoApplication implements CommandLineRunner {
         String notifyOrderNo = "ORD-NOTIFY-" + System.currentTimeMillis();
 
         BigDecimal payAmount = new BigDecimal("100.00");
-        Map<String, BigDecimal> splits = new HashMap<>();
-        splits.put("MCH-001", new BigDecimal("100.00"));
-
         // 1. 模拟通知处理中 (payStatus=SUCCESS, splitStatus=SUCCESS, notifyStatus=PROCESSING)
         System.out.println("步骤1: 支付成功，但通知回调处理中 (notifyStatus = PROCESSING)...");
+        List<ReconOrderSplitSubDO> splits = new ArrayList<>();
+        ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+        sub.setSubOrderNo(notifyOrderNo + "-S1");
+        sub.setMerchantId("MCH-001");
+        sub.setSplitAmount(new BigDecimal("100.00"));
+        splits.add(sub);
+
         easyReconApi.reconOrder(notifyOrderNo, payAmount, BigDecimal.ZERO, BigDecimal.ZERO,
                 splits, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS, NotifyStatusEnum.PROCESSING);
 
@@ -250,8 +284,12 @@ public class DemoApplication implements CommandLineRunner {
         String orderNo = "ORD-CB-" + System.currentTimeMillis();
 
         BigDecimal payAmount = new BigDecimal("200.00");
-        Map<String, BigDecimal> splits = new HashMap<>();
-        splits.put("MCH-001", new BigDecimal("200.00"));
+        List<ReconOrderSplitSubDO> splits = new ArrayList<>();
+        ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+        sub.setSubOrderNo(orderNo + "-S1");
+        sub.setMerchantId("MCH-001");
+        sub.setSplitAmount(new BigDecimal("200.00"));
+        splits.add(sub);
 
         // 1. 提交初始订单，通知状态为 PROCESSING
         System.out.println("1. 提交订单，当前通知状态为 PROCESSING...");
@@ -267,4 +305,44 @@ public class DemoApplication implements CommandLineRunner {
         System.out.println("通知处理结果: " + (result.isSuccess() ? "成功" : "失败"));
         System.out.println("最终对账状态: " + easyReconApi.getReconStatus(orderNo));
     }
+
+    /**
+     * [场景 9] 多商户分账及逐个通知闭环演示
+     */
+    private void demoMultiMerchantClosure() {
+        System.out.println("\n--- [场景 9] 多商户分账及逐个通知闭环演示 ---");
+        String orderNo = "ORD-MULTI-" + System.currentTimeMillis();
+
+        BigDecimal payAmount = new BigDecimal("300.00");
+        List<ReconOrderSplitSubDO> splits = new ArrayList<>();
+
+        ReconOrderSplitSubDO subA = new ReconOrderSplitSubDO();
+        subA.setSubOrderNo(orderNo + "-A");
+        subA.setMerchantId("MCH-A");
+        subA.setSplitAmount(new BigDecimal("100.00"));
+        splits.add(subA);
+
+        ReconOrderSplitSubDO subB = new ReconOrderSplitSubDO();
+        subB.setSubOrderNo(orderNo + "-B");
+        subB.setMerchantId("MCH-B");
+        subB.setSplitAmount(new BigDecimal("200.00"));
+        splits.add(subB);
+
+        // 1. 提交初始订单，初始化为 PROCESSING
+        System.out.println("1. 提交订单 (商户A: 100, 商户B: 200)，当前通知状态为 PROCESSING...");
+        easyReconApi.reconOrder(orderNo, payAmount, BigDecimal.ZERO, BigDecimal.ZERO, splits,
+                PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS, NotifyStatusEnum.PROCESSING);
+        System.out.println("初始对账状态 (预期为 PENDING): " + easyReconApi.getReconStatus(orderNo));
+
+        // 2. 更新商户A的通知结果
+        System.out.println("2. 更新商户A通知成功...");
+        easyReconApi.reconNotify(orderNo, "MCH-A", "https://callback.io/api/A", NotifyStatusEnum.SUCCESS, "OK");
+        System.out.println("商户A更新后状态 (预期为 PENDING): " + easyReconApi.getReconStatus(orderNo));
+
+        // 3. 更新商户B的通知结果
+        System.out.println("3. 更新商户B通知成功...");
+        easyReconApi.reconNotify(orderNo, "MCH-B", "https://callback.io/api/B", NotifyStatusEnum.SUCCESS, "OK");
+        System.out.println("最终对账状态 (预期为 SUCCESS): " + easyReconApi.getReconStatus(orderNo));
+    }
+
 }

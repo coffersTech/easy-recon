@@ -25,23 +25,26 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_main` (
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_no` (`order_no`),
-  KEY `idx_recon_status` (`recon_status`),
-  KEY `idx_create_time` (`create_time`)
+  KEY `idx_main_recon_status` (`recon_status`),
+  KEY `idx_main_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账订单主记录';
 
 -- 对账订单分账子记录
 CREATE TABLE IF NOT EXISTS `easy_recon_order_split_sub` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `order_no` VARCHAR(64) NOT NULL COMMENT '订单号',
+  `sub_order_no` VARCHAR(64) NULL COMMENT '子订单号',
   `merchant_id` VARCHAR(64) NOT NULL COMMENT '商户 ID',
   `split_amount` DECIMAL(18,2) NOT NULL COMMENT '分账金额',
   `split_amount_fen` BIGINT COMMENT '分账金额（分）',
+  `notify_status` TINYINT NOT NULL DEFAULT 2 COMMENT '通知状态 (0:失败, 1:成功, 2:待处理)',
+  `notify_result` TEXT NULL COMMENT '通知返回结果',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_merchant` (`order_no`, `merchant_id`),
-  KEY `idx_order_no` (`order_no`),
-  KEY `idx_merchant_id` (`merchant_id`)
+  KEY `idx_sub_order_no` (`order_no`),
+  KEY `idx_sub_merchant_id` (`merchant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账订单分账子记录';
 
 -- 对账订单退款分账子记录
@@ -54,8 +57,8 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_refund_split_sub` (
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  KEY `idx_order_no` (`order_no`),
-  KEY `idx_merchant_id` (`merchant_id`)
+  KEY `idx_refund_sub_order_no` (`order_no`),
+  KEY `idx_refund_sub_merchant_id` (`merchant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账订单退款分账子记录';
 
 -- 对账异常记录
@@ -68,10 +71,10 @@ CREATE TABLE IF NOT EXISTS `easy_recon_exception` (
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_order_no` (`order_no`),
-  KEY `idx_merchant_id` (`merchant_id`),
-  KEY `idx_exception_step` (`exception_step`),
-  KEY `idx_create_time` (`create_time`)
+  UNIQUE KEY `uk_exc_order_no` (`order_no`),
+  KEY `idx_exc_merchant_id` (`merchant_id`),
+  KEY `idx_exc_step` (`exception_step`),
+  KEY `idx_exc_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账异常记录';
 
 -- 对账通知日志
@@ -85,10 +88,10 @@ CREATE TABLE IF NOT EXISTS `easy_recon_notify_log` (
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_order_no` (`order_no`),
-  KEY `idx_merchant_id` (`merchant_id`),
-  KEY `idx_notify_status` (`notify_status`),
-  KEY `idx_create_time` (`create_time`)
+  UNIQUE KEY `uk_order_no_mch_notify` (`order_no`, `merchant_id`),
+  KEY `idx_notify_log_merchant_id` (`merchant_id`),
+  KEY `idx_notify_log_status` (`notify_status`),
+  KEY `idx_notify_log_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账通知日志';
 
 -- 对账规则表

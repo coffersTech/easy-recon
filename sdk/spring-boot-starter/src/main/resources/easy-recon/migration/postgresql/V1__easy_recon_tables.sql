@@ -52,16 +52,19 @@ COMMENT ON COLUMN "easy_recon_order_main"."update_time" IS '更新时间';
 CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_no" ON "easy_recon_order_main" ("order_no");
 
 -- 创建普通索引
-CREATE INDEX IF NOT EXISTS "idx_recon_status" ON "easy_recon_order_main" ("recon_status");
-CREATE INDEX IF NOT EXISTS "idx_create_time" ON "easy_recon_order_main" ("create_time");
+CREATE INDEX IF NOT EXISTS "idx_main_recon_status" ON "easy_recon_order_main" ("recon_status");
+CREATE INDEX IF NOT EXISTS "idx_main_create_time" ON "easy_recon_order_main" ("create_time");
 
 -- 对账订单分账子记录
 CREATE TABLE IF NOT EXISTS "easy_recon_order_split_sub" (
   "id" BIGSERIAL NOT NULL PRIMARY KEY,
   "order_no" VARCHAR(64) NOT NULL,
+  "sub_order_no" VARCHAR(64),
   "merchant_id" VARCHAR(64) NOT NULL,
   "split_amount" DECIMAL(18,2) NOT NULL,
   "split_amount_fen" BIGINT,
+  "notify_status" SMALLINT NOT NULL DEFAULT 2,
+  "notify_result" TEXT,
   "create_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "update_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -69,9 +72,12 @@ CREATE TABLE IF NOT EXISTS "easy_recon_order_split_sub" (
 COMMENT ON TABLE "easy_recon_order_split_sub" IS '对账订单分账子记录';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."id" IS '主键 ID';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."order_no" IS '订单号';
+COMMENT ON COLUMN "easy_recon_order_split_sub"."sub_order_no" IS '子订单号';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."merchant_id" IS '商户 ID';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."split_amount" IS '分账金额';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."split_amount_fen" IS '分账金额（分）';
+COMMENT ON COLUMN "easy_recon_order_split_sub"."notify_status" IS '通知状态 (0:失败, 1:成功, 2:待处理)';
+COMMENT ON COLUMN "easy_recon_order_split_sub"."notify_result" IS '通知返回结果';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."create_time" IS '创建时间';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."update_time" IS '更新时间';
 
@@ -96,15 +102,15 @@ COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."create_time" IS '创建�
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."update_time" IS '更新时间';
 
 -- 创建普通索引
-CREATE INDEX IF NOT EXISTS "idx_order_no_refund" ON "easy_recon_order_refund_split_sub" ("order_no");
-CREATE INDEX IF NOT EXISTS "idx_merchant_id_refund" ON "easy_recon_order_refund_split_sub" ("merchant_id");
+CREATE INDEX IF NOT EXISTS "idx_refund_sub_order_no" ON "easy_recon_order_refund_split_sub" ("order_no");
+CREATE INDEX IF NOT EXISTS "idx_refund_sub_merchant_id" ON "easy_recon_order_refund_split_sub" ("merchant_id");
 
 -- 创建唯一索引
 CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_merchant" ON "easy_recon_order_split_sub" ("order_no", "merchant_id");
 
 -- 创建普通索引
-CREATE INDEX IF NOT EXISTS "idx_order_no" ON "easy_recon_order_split_sub" ("order_no");
-CREATE INDEX IF NOT EXISTS "idx_merchant_id_sub" ON "easy_recon_order_split_sub" ("merchant_id");
+CREATE INDEX IF NOT EXISTS "idx_sub_order_no" ON "easy_recon_order_split_sub" ("order_no");
+CREATE INDEX IF NOT EXISTS "idx_sub_merchant_id" ON "easy_recon_order_split_sub" ("merchant_id");
 
 -- 对账异常记录
 CREATE TABLE IF NOT EXISTS "easy_recon_exception" (
@@ -130,9 +136,9 @@ COMMENT ON COLUMN "easy_recon_exception"."update_time" IS '更新时间';
 CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_no_exception" ON "easy_recon_exception" ("order_no");
 
 -- 创建普通索引
-CREATE INDEX IF NOT EXISTS "idx_merchant_id_exception" ON "easy_recon_exception" ("merchant_id");
-CREATE INDEX IF NOT EXISTS "idx_exception_step" ON "easy_recon_exception" ("exception_step");
-CREATE INDEX IF NOT EXISTS "idx_create_time_exception" ON "easy_recon_exception" ("create_time");
+CREATE INDEX IF NOT EXISTS "idx_exc_merchant_id" ON "easy_recon_exception" ("merchant_id");
+CREATE INDEX IF NOT EXISTS "idx_exc_step" ON "easy_recon_exception" ("exception_step");
+CREATE INDEX IF NOT EXISTS "idx_exc_create_time" ON "easy_recon_exception" ("create_time");
 
 -- 对账通知日志
 CREATE TABLE IF NOT EXISTS "easy_recon_notify_log" (
@@ -157,12 +163,12 @@ COMMENT ON COLUMN "easy_recon_notify_log"."create_time" IS '创建时间';
 COMMENT ON COLUMN "easy_recon_notify_log"."update_time" IS '更新时间';
 
 -- 创建唯一索引
-CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_no_notify" ON "easy_recon_notify_log" ("order_no");
+CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_no_mch_notify" ON "easy_recon_notify_log" ("order_no", "merchant_id");
 
 -- 创建普通索引
-CREATE INDEX IF NOT EXISTS "idx_merchant_id_notify" ON "easy_recon_notify_log" ("merchant_id");
-CREATE INDEX IF NOT EXISTS "idx_notify_status" ON "easy_recon_notify_log" ("notify_status");
-CREATE INDEX IF NOT EXISTS "idx_create_time_notify" ON "easy_recon_notify_log" ("create_time");
+CREATE INDEX IF NOT EXISTS "idx_notify_log_merchant_id" ON "easy_recon_notify_log" ("merchant_id");
+CREATE INDEX IF NOT EXISTS "idx_notify_log_status" ON "easy_recon_notify_log" ("notify_status");
+CREATE INDEX IF NOT EXISTS "idx_notify_log_create_time" ON "easy_recon_notify_log" ("create_time");
 
 -- 创建更新时间触发器函数
 CREATE OR REPLACE FUNCTION update_modified_column()

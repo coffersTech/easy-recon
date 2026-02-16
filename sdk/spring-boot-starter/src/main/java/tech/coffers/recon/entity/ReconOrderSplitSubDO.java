@@ -28,6 +28,11 @@ public class ReconOrderSplitSubDO {
     private String orderNo;
 
     /**
+     * 子订单号
+     */
+    private String subOrderNo;
+
+    /**
      * 商户ID (分账接收方)
      */
     private String merchantId;
@@ -52,10 +57,22 @@ public class ReconOrderSplitSubDO {
      */
     private LocalDateTime updateTime;
 
+    /**
+     * 通知状态 (0:失败, 1:成功, 2:待处理)
+     */
+    private Integer notifyStatus;
+
+    /**
+     * 通知返回结果
+     */
+    private String notifyResult;
+
     public void setSplitAmount(BigDecimal splitAmount) {
         this.splitAmount = splitAmount;
         if (splitAmount != null) {
             this.splitAmountFen = splitAmount.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.splitAmountFen = null;
         }
     }
 
@@ -63,6 +80,8 @@ public class ReconOrderSplitSubDO {
         this.splitAmountFen = splitAmountFen;
         if (splitAmountFen != null) {
             this.splitAmount = new BigDecimal(splitAmountFen).divide(new BigDecimal("100"));
+        } else {
+            this.splitAmount = null;
         }
     }
 

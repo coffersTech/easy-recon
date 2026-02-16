@@ -29,10 +29,12 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, merchant_id, split_amount, split_amount_fen, create_time, update_time) "
-                + "VALUES (?, ?, ?, ?, ?, ?) "
+                + " (order_no, sub_order_no, merchant_id, split_amount, split_amount_fen, notify_status, notify_result, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE "
+                + "sub_order_no = VALUES(sub_order_no), "
                 + "split_amount = VALUES(split_amount), split_amount_fen = VALUES(split_amount_fen), "
+                + "notify_status = VALUES(notify_status), notify_result = VALUES(notify_result), "
                 + "update_time = VALUES(update_time)";
     }
 

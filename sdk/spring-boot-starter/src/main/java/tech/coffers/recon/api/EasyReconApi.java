@@ -60,7 +60,7 @@ public class EasyReconApi {
      * @return 对账结果
      */
     public ReconResult reconOrder(String orderNo, BigDecimal payAmount, BigDecimal platformIncome,
-            BigDecimal payFee, Map<String, BigDecimal> splitDetails, PayStatusEnum payStatus,
+            BigDecimal payFee, List<ReconOrderSplitSubDO> splitDetails, PayStatusEnum payStatus,
             SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
         return realtimeReconService.reconOrder(orderNo, payAmount, platformIncome, payFee, splitDetails,
                 payStatus, splitStatus, notifyStatus);
@@ -73,7 +73,6 @@ public class EasyReconApi {
      * @param payAmount      支付金额
      * @param platformIncome 平台收入
      * @param payFee         支付手续费
-     * @param merchantSplits 分账详情
      * @param splitDetails   分账详情
      * @param payStatus      支付状态
      * @param splitStatus    分账状态
@@ -82,7 +81,7 @@ public class EasyReconApi {
      */
     public CompletableFuture<ReconResult> reconOrderAsync(String orderNo, BigDecimal payAmount,
             BigDecimal platformIncome,
-            BigDecimal payFee, Map<String, BigDecimal> splitDetails, PayStatusEnum payStatus,
+            BigDecimal payFee, List<ReconOrderSplitSubDO> splitDetails, PayStatusEnum payStatus,
             SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
         return realtimeReconService.reconOrderAsync(orderNo, payAmount, platformIncome, payFee, splitDetails,
                 payStatus, splitStatus, notifyStatus);

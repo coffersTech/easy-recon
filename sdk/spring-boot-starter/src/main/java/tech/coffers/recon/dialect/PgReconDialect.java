@@ -29,10 +29,12 @@ public class PgReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, merchant_id, split_amount, split_amount_fen, create_time, update_time) "
-                + "VALUES (?, ?, ?, ?, ?, ?) "
+                + " (order_no, sub_order_no, merchant_id, split_amount, split_amount_fen, notify_status, notify_result, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON CONFLICT (order_no, merchant_id) DO UPDATE SET "
+                + "sub_order_no = EXCLUDED.sub_order_no, "
                 + "split_amount = EXCLUDED.split_amount, split_amount_fen = EXCLUDED.split_amount_fen, "
+                + "notify_status = EXCLUDED.notify_status, notify_result = EXCLUDED.notify_result, "
                 + "update_time = EXCLUDED.update_time";
     }
 

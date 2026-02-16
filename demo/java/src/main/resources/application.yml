@@ -3,10 +3,11 @@ spring:
     enabled: true
   datasource:
     # Default using H2 in-memory database for demo
-    # url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL
-    # driverClassName: org.h2.Driver
-    # username: sa
-    # password: password
+    # Default using H2 in-memory database for demo
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
 
     # MySQL Configuration Example
     # url: jdbc:mysql://localhost:3306/easy_recon_demo?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
@@ -15,10 +16,10 @@ spring:
     # password: your_password
 
     # PostgreSQL Configuration Example
-    url: jdbc:postgresql://localhost:5432/easy_recon_demo
-    driverClassName: org.postgresql.Driver
-    username: postgresql
-    password: postgresql
+    # url: jdbc:postgresql://localhost:5432/easy_recon_demo
+    # driverClassName: org.postgresql.Driver
+    # username: postgresql
+    # password: postgresql
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     # For MySQL: org.hibernate.dialect.MySQL8Dialect

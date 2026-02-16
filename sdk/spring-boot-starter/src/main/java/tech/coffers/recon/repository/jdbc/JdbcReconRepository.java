@@ -106,11 +106,14 @@ public class JdbcReconRepository implements ReconRepository {
                 public void setValues(PreparedStatement ps, int i) throws SQLException {
                     ReconOrderSplitSubDO subDO = splitSubDOs.get(i);
                     ps.setString(1, subDO.getOrderNo());
-                    ps.setString(2, subDO.getMerchantId());
-                    ps.setBigDecimal(3, subDO.getSplitAmount());
-                    ps.setObject(4, subDO.getSplitAmountFen());
-                    ps.setObject(5, subDO.getCreateTime());
-                    ps.setObject(6, subDO.getUpdateTime());
+                    ps.setString(2, subDO.getSubOrderNo());
+                    ps.setString(3, subDO.getMerchantId());
+                    ps.setBigDecimal(4, subDO.getSplitAmount());
+                    ps.setObject(5, subDO.getSplitAmountFen());
+                    ps.setInt(6, subDO.getNotifyStatus() != null ? subDO.getNotifyStatus() : 2);
+                    ps.setString(7, subDO.getNotifyResult());
+                    ps.setObject(8, subDO.getCreateTime());
+                    ps.setObject(9, subDO.getUpdateTime());
                 }
 
                 @Override
@@ -258,6 +261,35 @@ public class JdbcReconRepository implements ReconRepository {
             return rows > 0;
         } catch (Exception e) {
             log.error("更新通知状态失败", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, int notifyStatus,
+            String notifyResult) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String sql = "UPDATE " + tableName
+                    + " SET notify_status = ?, notify_result = ?, update_time = ? WHERE order_no = ? AND merchant_id = ?";
+            int rows = jdbcTemplate.update(sql, notifyStatus, notifyResult, LocalDateTime.now(), orderNo, merchantId);
+            return rows > 0;
+        } catch (Exception e) {
+            log.error("更新分账子表通知状态失败", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isAllSplitSubNotified(String orderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_split_sub";
+            // 检查是否存在 notify_status != 1 (成功) 的记录
+            String sql = "SELECT count(*) FROM " + tableName + " WHERE order_no = ? AND notify_status != 1";
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, orderNo);
+            return count != null && count == 0;
+        } catch (Exception e) {
+            log.error("校验分账通知状态失败", e);
             return false;
         }
     }
@@ -721,6 +753,7 @@ public class JdbcReconRepository implements ReconRepository {
             ReconOrderSplitSubDO subDO = new ReconOrderSplitSubDO();
             subDO.setId(rs.getLong("id"));
             subDO.setOrderNo(rs.getString("order_no"));
+            subDO.setSubOrderNo(rs.getString("sub_order_no"));
             subDO.setMerchantId(rs.getString("merchant_id"));
             subDO.setSplitAmount(rs.getBigDecimal("split_amount"));
             subDO.setSplitAmountFen(rs.getObject("split_amount_fen", Long.class));

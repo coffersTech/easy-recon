@@ -7,6 +7,7 @@ import org.mockito.MockitoAnnotations;
 import tech.coffers.recon.api.result.ReconResult;
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
 import tech.coffers.recon.entity.ReconOrderMainDO;
+import tech.coffers.recon.entity.ReconOrderSplitSubDO;
 import tech.coffers.recon.api.enums.PayStatusEnum;
 import tech.coffers.recon.api.enums.SplitStatusEnum;
 import tech.coffers.recon.api.enums.NotifyStatusEnum;
@@ -16,7 +17,9 @@ import tech.coffers.recon.repository.ReconRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -63,8 +66,13 @@ class RealtimeReconServiceTest {
                 BigDecimal payAmount = new BigDecimal("100.00");
                 BigDecimal platformIncome = new BigDecimal("5.00");
                 BigDecimal payFee = new BigDecimal("1.00");
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("94.00"));
+
+                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                sub.setSubOrderNo(orderNo + "-S1");
+                sub.setMerchantId(merchantId);
+                sub.setSplitAmount(new BigDecimal("94.00"));
+                splitDetails.add(sub);
 
                 // 模拟存储库方法
                 when(reconRepository.saveOrderMain(any())).thenReturn(true);
@@ -72,8 +80,7 @@ class RealtimeReconServiceTest {
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee,
-                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
                                 NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
@@ -97,13 +104,16 @@ class RealtimeReconServiceTest {
                 BigDecimal payAmount = new BigDecimal("100.00");
                 BigDecimal platformIncome = new BigDecimal("5.00");
                 BigDecimal payFee = new BigDecimal("1.00");
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("94.00"));
+
+                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                sub.setMerchantId(merchantId);
+                sub.setSplitAmount(new BigDecimal("94.00"));
+                splitDetails.add(sub);
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee,
-                                splitDetails, PayStatusEnum.FAILURE, SplitStatusEnum.SUCCESS,
+                                payFee, splitDetails, PayStatusEnum.FAILURE, SplitStatusEnum.SUCCESS,
                                 NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
@@ -127,13 +137,16 @@ class RealtimeReconServiceTest {
                 BigDecimal payAmount = new BigDecimal("100.00");
                 BigDecimal platformIncome = new BigDecimal("5.00");
                 BigDecimal payFee = new BigDecimal("1.00");
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("94.00"));
+
+                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                sub.setMerchantId(merchantId);
+                sub.setSplitAmount(new BigDecimal("94.00"));
+                splitDetails.add(sub);
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee,
-                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.FAILURE,
+                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.FAILURE,
                                 NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
@@ -157,13 +170,16 @@ class RealtimeReconServiceTest {
                 BigDecimal payAmount = new BigDecimal("100.00");
                 BigDecimal platformIncome = new BigDecimal("5.00");
                 BigDecimal payFee = new BigDecimal("1.00");
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("94.00"));
+
+                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                sub.setMerchantId(merchantId);
+                sub.setSplitAmount(new BigDecimal("94.00"));
+                splitDetails.add(sub);
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee,
-                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
                                 NotifyStatusEnum.FAILURE);
 
                 // 验证结果
@@ -187,13 +203,16 @@ class RealtimeReconServiceTest {
                 BigDecimal payAmount = new BigDecimal("100.00");
                 BigDecimal platformIncome = new BigDecimal("5.00");
                 BigDecimal payFee = new BigDecimal("1.00");
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("90.00")); // 分账金额错误，应该是 94.00
+
+                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                sub.setMerchantId(merchantId);
+                sub.setSplitAmount(new BigDecimal("90.00")); // 分账金额错误，应该是 94.00
+                splitDetails.add(sub);
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee,
-                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
                                 NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
@@ -216,16 +235,19 @@ class RealtimeReconServiceTest {
                 BigDecimal payAmount = new BigDecimal("100.00");
                 BigDecimal platformIncome = new BigDecimal("5.00");
                 BigDecimal payFee = new BigDecimal("1.00");
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("94.00"));
+
+                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                sub.setMerchantId(merchantId);
+                sub.setSplitAmount(new BigDecimal("94.00"));
+                splitDetails.add(sub);
 
                 // 模拟存储库方法抛出异常
                 when(reconRepository.saveOrderMain(any())).thenThrow(new RuntimeException("数据库操作失败"));
 
                 // 执行测试
                 ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee,
-                                splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
+                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
                                 NotifyStatusEnum.SUCCESS);
 
                 // 验证结果
@@ -316,8 +338,12 @@ class RealtimeReconServiceTest {
                 BigDecimal payAmount = new BigDecimal("100.00");
                 BigDecimal platformIncome = new BigDecimal("5.00");
                 BigDecimal payFee = new BigDecimal("1.00");
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("94.00"));
+
+                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                sub.setMerchantId(merchantId);
+                sub.setSplitAmount(new BigDecimal("94.00"));
+                splitDetails.add(sub);
 
                 // 模拟存储库方法
                 when(reconRepository.saveOrderMain(any())).thenReturn(true);

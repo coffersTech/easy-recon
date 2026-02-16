@@ -56,6 +56,8 @@ public class ReconOrderRefundSplitSubDO {
         this.refundSplitAmount = refundSplitAmount;
         if (refundSplitAmount != null) {
             this.refundSplitAmountFen = refundSplitAmount.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.refundSplitAmountFen = null;
         }
     }
 
@@ -63,6 +65,8 @@ public class ReconOrderRefundSplitSubDO {
         this.refundSplitAmountFen = refundSplitAmountFen;
         if (refundSplitAmountFen != null) {
             this.refundSplitAmount = new BigDecimal(refundSplitAmountFen).divide(new BigDecimal("100"));
+        } else {
+            this.refundSplitAmount = null;
         }
     }
 

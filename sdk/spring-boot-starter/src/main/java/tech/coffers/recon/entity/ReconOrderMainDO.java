@@ -138,6 +138,8 @@ public class ReconOrderMainDO {
         this.payAmount = payAmount;
         if (payAmount != null) {
             this.payAmountFen = payAmount.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.payAmountFen = null;
         }
     }
 
@@ -145,6 +147,8 @@ public class ReconOrderMainDO {
         this.payAmountFen = payAmountFen;
         if (payAmountFen != null) {
             this.payAmount = new BigDecimal(payAmountFen).divide(new BigDecimal("100"));
+        } else {
+            this.payAmount = null;
         }
     }
 
@@ -152,6 +156,8 @@ public class ReconOrderMainDO {
         this.platformIncome = platformIncome;
         if (platformIncome != null) {
             this.platformIncomeFen = platformIncome.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.platformIncomeFen = null;
         }
     }
 
@@ -159,6 +165,8 @@ public class ReconOrderMainDO {
         this.platformIncomeFen = platformIncomeFen;
         if (platformIncomeFen != null) {
             this.platformIncome = new BigDecimal(platformIncomeFen).divide(new BigDecimal("100"));
+        } else {
+            this.platformIncome = null;
         }
     }
 
@@ -166,6 +174,8 @@ public class ReconOrderMainDO {
         this.payFee = payFee;
         if (payFee != null) {
             this.payFeeFen = payFee.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.payFeeFen = null;
         }
     }
 
@@ -173,6 +183,8 @@ public class ReconOrderMainDO {
         this.payFeeFen = payFeeFen;
         if (payFeeFen != null) {
             this.payFee = new BigDecimal(payFeeFen).divide(new BigDecimal("100"));
+        } else {
+            this.payFee = null;
         }
     }
 

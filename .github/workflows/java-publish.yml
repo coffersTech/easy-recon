@@ -31,29 +31,6 @@ jobs:
           server-password: MAVEN_PASSWORD
 
       # --- 诊断步骤开始 ---
-      - name: GPG Diagnosis & Key Import
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-
-      - name: Check GPG Environment
-        run: |
-          echo "==== 1. 检查已加载的私钥 ===="
-          gpg --list-secret-keys --keyid-format LONG
-          
-          echo "==== 2. 检查密码 Secret 格式 (安全检查) ===="
-          if [ -z "$GPG_PASS" ]; then
-            echo "错误: MAVEN_GPG_PASSPHRASE 为空！"
-            exit 1
-          else
-            echo "密码长度: ${#GPG_PASS} 字符"
-            echo "密码行数: $(echo "$GPG_PASS" | wc -l)"
-          fi
-        env:
-          GPG_PASS: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-      # --- 诊断步骤结束 ---
-
       - name: Build with Maven
         run: mvn -B clean package --file sdk/spring-boot-starter/pom.xml
 
@@ -67,3 +44,4 @@ jobs:
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}

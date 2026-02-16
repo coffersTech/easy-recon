@@ -69,6 +69,9 @@ public class DemoApplication implements CommandLineRunner {
         // 场景 10: 基于子订单识别的退款对账
         demoRefundBySubRecon();
 
+        // 场景 11: 基于商户原始订单号 (merchantOrderNo) 的对账演示
+        demoMerchantOrderNoRecon();
+
         // 等待异步任务执行完成
         Thread.sleep(2000);
         System.out.println("\n=== Easy Recon SDK 功能演示结束 ===");
@@ -388,6 +391,50 @@ public class DemoApplication implements CommandLineRunner {
             System.out.println("最终对账状态: " + easyReconApi.getReconStatus(orderNo));
         } else {
             System.out.println("基于子订单的退款对账失败: " + result.getMessage());
+        }
+    }
+
+    /**
+     * [场景 11] 基于商户原始订单号 (merchantOrderNo) 的对账演示
+     * 演示如何使用商户系统的原始单号进行核账、通知和退款。
+     */
+    private void demoMerchantOrderNoRecon() {
+        System.out.println("\n--- [场景 11] 基于商户原始订单号 (merchantOrderNo) 的对账演示 ---");
+        String orderNo = "ORD-MNO-" + System.currentTimeMillis();
+        String merchantId = "MCH-888";
+        String merchantOrderNo = "MY-ORIGINAL-NO-" + System.currentTimeMillis();
+
+        // 1. 创建订单，并关联商户原始订单号
+        System.out.println("1. 提交对账订单，关联商户单号: " + merchantOrderNo);
+        List<ReconOrderSplitSubDO> splits = new ArrayList<>();
+        ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+        sub.setSubOrderNo(orderNo + "-S1");
+        sub.setMerchantId(merchantId);
+        sub.setMerchantOrderNo(merchantOrderNo);
+        sub.setSplitAmount(new BigDecimal("500.00"));
+        splits.add(sub);
+
+        easyReconApi.reconOrder(orderNo, new BigDecimal("500.00"), BigDecimal.ZERO, BigDecimal.ZERO, splits,
+                PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS, NotifyStatusEnum.PROCESSING);
+
+        System.out.println("订单初始状态 (预期 PENDING): " + easyReconApi.getReconStatus(orderNo));
+
+        // 2. 模拟收到通知回调，仅凭 merchantId 和 merchantOrderNo 进行识别
+        System.out.println("2. 模拟收到商户通知，使用 merchantOrderNo 进行更新...");
+        easyReconApi.reconNotifyByMerchantOrder(merchantId, merchantOrderNo, "https://mch.com/notify",
+                NotifyStatusEnum.SUCCESS, "SUCCESS_RESP");
+
+        System.out.println("通知后状态 (预期 SUCCESS): " + easyReconApi.getReconStatus(orderNo));
+
+        // 3. 模拟退款，同样使用 merchantOrderNo
+        System.out.println("3. 模拟发起退款，使用 merchantOrderNo...");
+        ReconResult refundResult = easyReconApi.reconRefundByMerchantOrder(merchantId, merchantOrderNo,
+                new BigDecimal("100.00"), LocalDateTime.now(), RefundStatusEnum.SUCCESS);
+
+        if (refundResult.isSuccess()) {
+            System.out.println("基于 merchantOrderNo 的退款对账成功!");
+            ReconOrderMainDO main = easyReconApi.getOrderMain(orderNo);
+            System.out.println("完成退款核账，退款金额: " + main.getRefundAmount());
         }
     }
 

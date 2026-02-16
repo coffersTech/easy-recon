@@ -106,12 +106,13 @@ public class JdbcReconRepository implements ReconRepository {
                 ps.setString(1, splitSubDO.getOrderNo());
                 ps.setString(2, splitSubDO.getSubOrderNo());
                 ps.setString(3, splitSubDO.getMerchantId());
-                ps.setBigDecimal(4, splitSubDO.getSplitAmount());
-                ps.setObject(5, splitSubDO.getSplitAmountFen());
-                ps.setInt(6, splitSubDO.getNotifyStatus() != null ? splitSubDO.getNotifyStatus() : 2);
-                ps.setString(7, splitSubDO.getNotifyResult());
-                ps.setObject(8, splitSubDO.getCreateTime());
-                ps.setObject(9, splitSubDO.getUpdateTime());
+                ps.setString(4, splitSubDO.getMerchantOrderNo());
+                ps.setBigDecimal(5, splitSubDO.getSplitAmount());
+                ps.setObject(6, splitSubDO.getSplitAmountFen());
+                ps.setInt(7, splitSubDO.getNotifyStatus() != null ? splitSubDO.getNotifyStatus() : 2);
+                ps.setString(8, splitSubDO.getNotifyResult());
+                ps.setObject(9, splitSubDO.getCreateTime());
+                ps.setObject(10, splitSubDO.getUpdateTime());
             });
             return rows > 0;
         } catch (Exception e) {
@@ -145,12 +146,13 @@ public class JdbcReconRepository implements ReconRepository {
                     ps.setString(1, subDO.getOrderNo());
                     ps.setString(2, subDO.getSubOrderNo());
                     ps.setString(3, subDO.getMerchantId());
-                    ps.setBigDecimal(4, subDO.getSplitAmount());
-                    ps.setObject(5, subDO.getSplitAmountFen());
-                    ps.setInt(6, subDO.getNotifyStatus() != null ? subDO.getNotifyStatus() : 2);
-                    ps.setString(7, subDO.getNotifyResult());
-                    ps.setObject(8, subDO.getCreateTime());
-                    ps.setObject(9, subDO.getUpdateTime());
+                    ps.setString(4, subDO.getMerchantOrderNo());
+                    ps.setBigDecimal(5, subDO.getSplitAmount());
+                    ps.setObject(6, subDO.getSplitAmountFen());
+                    ps.setInt(7, subDO.getNotifyStatus() != null ? subDO.getNotifyStatus() : 2);
+                    ps.setString(8, subDO.getNotifyResult());
+                    ps.setObject(9, subDO.getCreateTime());
+                    ps.setObject(10, subDO.getUpdateTime());
                 }
 
                 @Override
@@ -368,6 +370,21 @@ public class JdbcReconRepository implements ReconRepository {
     }
 
     @Override
+    public String findOrderNoByMerchantOrder(String merchantId, String merchantOrderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String sql = "SELECT order_no FROM " + tableName
+                    + " WHERE merchant_id = ? AND merchant_order_no = ? LIMIT 1";
+            return jdbcTemplate.queryForObject(sql, String.class, merchantId, merchantOrderNo);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            return null;
+        } catch (Exception e) {
+            log.error("查询主订单号失败，商户号: {}，商户订单号: {}", merchantId, merchantOrderNo, e);
+            return null;
+        }
+    }
+
+    @Override
     public Integer getReconStatus(String orderNo) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
@@ -538,10 +555,11 @@ public class JdbcReconRepository implements ReconRepository {
                     ps.setString(1, subDO.getOrderNo());
                     ps.setString(2, subDO.getSubOrderNo());
                     ps.setString(3, subDO.getMerchantId());
-                    ps.setBigDecimal(4, subDO.getRefundSplitAmount());
-                    ps.setObject(5, subDO.getRefundSplitAmountFen());
-                    ps.setObject(6, subDO.getCreateTime());
-                    ps.setObject(7, subDO.getUpdateTime());
+                    ps.setString(4, subDO.getMerchantOrderNo());
+                    ps.setBigDecimal(5, subDO.getRefundSplitAmount());
+                    ps.setObject(6, subDO.getRefundSplitAmountFen());
+                    ps.setObject(7, subDO.getCreateTime());
+                    ps.setObject(8, subDO.getUpdateTime());
                 }
 
                 @Override

@@ -38,6 +38,11 @@ public class ReconOrderSplitSubDO {
     private String merchantId;
 
     /**
+     * 商户原始订单号
+     */
+    private String merchantOrderNo;
+
+    /**
      * 本次分账的金额 (元)
      */
     private BigDecimal splitAmount;

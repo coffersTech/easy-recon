@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_split_sub` (
   `order_no` VARCHAR(64) NOT NULL COMMENT '订单号',
   `sub_order_no` VARCHAR(64) NULL COMMENT '子订单号',
   `merchant_id` VARCHAR(64) NOT NULL COMMENT '商户 ID',
+  `merchant_order_no` VARCHAR(64) NULL COMMENT '商户原始订单号',
   `split_amount` DECIMAL(18,2) NOT NULL COMMENT '分账金额',
   `split_amount_fen` BIGINT COMMENT '分账金额（分）',
   `notify_status` TINYINT NOT NULL DEFAULT 2 COMMENT '通知状态 (0:失败, 1:成功, 2:待处理)',
@@ -44,7 +45,8 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_split_sub` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_mch_sub` (`order_no`, `merchant_id`, `sub_order_no`),
   KEY `idx_sub_order_no` (`order_no`),
-  KEY `idx_sub_merchant_id` (`merchant_id`)
+  KEY `idx_sub_merchant_id` (`merchant_id`),
+  KEY `idx_sub_merchant_order_no` (`merchant_id`, `merchant_order_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账订单分账子记录';
 
 -- 对账订单退款分账子记录
@@ -53,13 +55,15 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_refund_split_sub` (
   `order_no` VARCHAR(64) NOT NULL COMMENT '订单号',
   `sub_order_no` VARCHAR(64) NULL COMMENT '子订单号',
   `merchant_id` VARCHAR(64) NOT NULL COMMENT '商户 ID',
+  `merchant_order_no` VARCHAR(64) NULL COMMENT '商户原始订单号',
   `refund_split_amount` DECIMAL(18,2) NOT NULL COMMENT '退款分账金额',
   `refund_split_amount_fen` BIGINT COMMENT '退款分账金额（分）',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_refund_sub_order_no` (`order_no`),
-  KEY `idx_refund_sub_merchant_id` (`merchant_id`)
+  KEY `idx_refund_sub_merchant_id` (`merchant_id`),
+  KEY `idx_refund_sub_merchant_order_no` (`merchant_id`, `merchant_order_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对账订单退款分账子记录';
 
 -- 对账异常记录

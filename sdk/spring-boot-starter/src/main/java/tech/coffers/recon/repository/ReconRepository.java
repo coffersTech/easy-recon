@@ -109,6 +109,15 @@ public interface ReconRepository {
         String findOrderNoBySub(String merchantId, String subOrderNo);
 
         /**
+         * 通过商户号和商户原始订单号定义关联的主订单号
+         *
+         * @param merchantId      商户ID
+         * @param merchantOrderNo 商户原始订单号
+         * @return 对应的主订单号
+         */
+        String findOrderNoByMerchantOrder(String merchantId, String merchantOrderNo);
+
+        /**
          * 查询订单当前的核账状态码
          *
          * @param orderNo 订单号

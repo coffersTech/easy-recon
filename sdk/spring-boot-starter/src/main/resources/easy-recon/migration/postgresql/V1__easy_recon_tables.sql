@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS "easy_recon_order_split_sub" (
   "order_no" VARCHAR(64) NOT NULL,
   "sub_order_no" VARCHAR(64),
   "merchant_id" VARCHAR(64) NOT NULL,
+  "merchant_order_no" VARCHAR(64),
   "split_amount" DECIMAL(18,2) NOT NULL,
   "split_amount_fen" BIGINT,
   "notify_status" SMALLINT NOT NULL DEFAULT 2,
@@ -74,6 +75,7 @@ COMMENT ON COLUMN "easy_recon_order_split_sub"."id" IS '主键 ID';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."order_no" IS '订单号';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."sub_order_no" IS '子订单号';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."merchant_id" IS '商户 ID';
+COMMENT ON COLUMN "easy_recon_order_split_sub"."merchant_order_no" IS '商户原始订单号';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."split_amount" IS '分账金额';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."split_amount_fen" IS '分账金额（分）';
 COMMENT ON COLUMN "easy_recon_order_split_sub"."notify_status" IS '通知状态 (0:失败, 1:成功, 2:待处理)';
@@ -87,6 +89,7 @@ CREATE TABLE IF NOT EXISTS "easy_recon_order_refund_split_sub" (
   "order_no" VARCHAR(64) NOT NULL,
   "sub_order_no" VARCHAR(64),
   "merchant_id" VARCHAR(64) NOT NULL,
+  "merchant_order_no" VARCHAR(64),
   "refund_split_amount" DECIMAL(18,2) NOT NULL,
   "refund_split_amount_fen" BIGINT,
   "create_time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -98,6 +101,7 @@ COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."id" IS '主键 ID';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."order_no" IS '订单号';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."sub_order_no" IS '子订单号';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."merchant_id" IS '商户 ID';
+COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."merchant_order_no" IS '商户原始订单号';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."refund_split_amount" IS '退款分账金额';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."refund_split_amount_fen" IS '退款分账金额（分）';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."create_time" IS '创建时间';
@@ -106,6 +110,7 @@ COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."update_time" IS '更新�
 -- 创建普通索引
 CREATE INDEX IF NOT EXISTS "idx_refund_sub_order_no" ON "easy_recon_order_refund_split_sub" ("order_no");
 CREATE INDEX IF NOT EXISTS "idx_refund_sub_merchant_id" ON "easy_recon_order_refund_split_sub" ("merchant_id");
+CREATE INDEX IF NOT EXISTS "idx_refund_sub_merchant_order_no" ON "easy_recon_order_refund_split_sub" ("merchant_id", "merchant_order_no");
 
 -- 创建唯一索引
 CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_mch_sub" ON "easy_recon_order_split_sub" ("order_no", "merchant_id", "sub_order_no");
@@ -113,6 +118,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "uk_order_mch_sub" ON "easy_recon_order_split_
 -- 创建普通索引
 CREATE INDEX IF NOT EXISTS "idx_sub_order_no" ON "easy_recon_order_split_sub" ("order_no");
 CREATE INDEX IF NOT EXISTS "idx_sub_merchant_id" ON "easy_recon_order_split_sub" ("merchant_id");
+CREATE INDEX IF NOT EXISTS "idx_sub_merchant_order_no" ON "easy_recon_order_split_sub" ("merchant_id", "merchant_order_no");
 
 -- 对账异常记录
 CREATE TABLE IF NOT EXISTS "easy_recon_exception" (

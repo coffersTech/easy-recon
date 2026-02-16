@@ -299,6 +299,34 @@ public class RealtimeReconService {
         return reconRefund(orderNo, refundAmount, refundTime, refundStatus, splitDetails);
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public ReconResult reconRefundByMerchantOrder(String merchantId, String merchantOrderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        String orderNo = reconRepository.findOrderNoByMerchantOrder(merchantId, merchantOrderNo);
+        if (orderNo == null) {
+            return ReconResult.fail(null, "无法根据商户号和商户订单号定位主订单");
+        }
+
+        List<ReconOrderRefundSplitSubDO> splitDetails = new ArrayList<>();
+        ReconOrderRefundSplitSubDO subDO = new ReconOrderRefundSplitSubDO();
+        subDO.setMerchantId(merchantId);
+        subDO.setMerchantOrderNo(merchantOrderNo);
+        subDO.setRefundSplitAmount(refundAmount);
+        splitDetails.add(subDO);
+
+        return reconRefund(orderNo, refundAmount, refundTime, refundStatus, splitDetails);
+    }
+
+    /**
+     * 异步对账退款 (基于商户订单号识别)
+     */
+    public CompletableFuture<ReconResult> reconRefundByMerchantOrderAsync(String merchantId, String merchantOrderNo,
+            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        return CompletableFuture.supplyAsync(
+                () -> reconRefundByMerchantOrder(merchantId, merchantOrderNo, refundAmount, refundTime, refundStatus),
+                executorService);
+    }
+
     /**
      * 异步对账退款 (基于子订单识别 - 简化版)
      */
@@ -406,7 +434,7 @@ public class RealtimeReconService {
     @Transactional(rollbackFor = Exception.class)
     public ReconResult reconNotify(String orderNo, String merchantId, String notifyUrl, NotifyStatusEnum notifyStatus,
             String notifyResult) {
-        return reconNotify(orderNo, merchantId, null, notifyUrl, notifyStatus, notifyResult);
+        return reconNotify(orderNo, merchantId, null, null, notifyUrl, notifyStatus, notifyResult);
     }
 
     /**
@@ -422,7 +450,16 @@ public class RealtimeReconService {
     @Transactional(rollbackFor = Exception.class)
     public ReconResult reconNotifyBySub(String merchantId, String subOrderNo, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
-        return reconNotify(null, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult);
+        return reconNotify(null, merchantId, subOrderNo, null, notifyUrl, notifyStatus, notifyResult);
+    }
+
+    /**
+     * 对账通知回调 (通过商户号和商户原始订单号识别)
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReconResult reconNotifyByMerchantOrder(String merchantId, String merchantOrderNo, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
+        return reconNotify(null, merchantId, null, merchantOrderNo, notifyUrl, notifyStatus, notifyResult);
     }
 
     /**
@@ -443,14 +480,19 @@ public class RealtimeReconService {
      * @return 对账结果
      */
     @Transactional(rollbackFor = Exception.class)
-    public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String notifyUrl,
-            NotifyStatusEnum notifyStatus, String notifyResult) {
+    public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String merchantOrderNo,
+            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
         try {
-            // 0. 如果 orderNo 为空，通过 merchantId 和 subOrderNo 反查
-            if ((orderNo == null || orderNo.isEmpty()) && merchantId != null && subOrderNo != null) {
-                orderNo = reconRepository.findOrderNoBySub(merchantId, subOrderNo);
+            // 0. 如果 orderNo 为空，通过 merchantId 和 subOrderNo/merchantOrderNo 反查
+            if ((orderNo == null || orderNo.isEmpty()) && merchantId != null) {
+                if (subOrderNo != null) {
+                    orderNo = reconRepository.findOrderNoBySub(merchantId, subOrderNo);
+                } else if (merchantOrderNo != null) {
+                    orderNo = reconRepository.findOrderNoByMerchantOrder(merchantId, merchantOrderNo);
+                }
+
                 if (orderNo == null) {
-                    return ReconResult.fail(null, "无法根据商户号和子订单号定位主订单");
+                    return ReconResult.fail(null, "无法根据商户号和子订单标识定位主订单");
                 }
             }
 
@@ -467,15 +509,11 @@ public class RealtimeReconService {
             }
 
             // 2. 检查是否所有分账都已经通知成功
-            // 核心思路：如果此时所有分账通知都已成功，则该订单在“通知侧”已闭环
             boolean allNotified = reconRepository.isAllSplitSubNotified(orderNo);
             if (allNotified) {
-                // 如果全部成功，同步更新主表的总体通知状态为全局成功
                 reconRepository.updateNotifyStatus(orderNo, NotifyStatusEnum.SUCCESS.getCode(),
                         "All merchants notified");
             } else if (notifyEnum == NotifyStatusEnum.FAILURE) {
-                // 如果当前通知失败，主表状态也记录为失败（或保持处理中，根据重试策略定）
-                // 这里选择更新主表以便及时发现异常
                 reconRepository.updateNotifyStatus(orderNo, NotifyStatusEnum.FAILURE.getCode(),
                         "Merchant " + merchantId + " notify failed");
             }
@@ -492,7 +530,7 @@ public class RealtimeReconService {
             notifyLogDO.setUpdateTime(LocalDateTime.now());
             reconRepository.saveNotifyLog(notifyLogDO);
 
-            // 4. 自动触发核账检查 (检查支付、分账、通知三个维度)
+            // 4. 自动触发核账检查
             boolean retrySuccess = retryRecon(orderNo);
 
             return retrySuccess ? ReconResult.success(orderNo)
@@ -517,7 +555,7 @@ public class RealtimeReconService {
     public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String subOrderNo,
             String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
         return CompletableFuture.supplyAsync(
-                () -> reconNotify(orderNo, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult),
+                () -> reconNotify(orderNo, merchantId, subOrderNo, null, notifyUrl, notifyStatus, notifyResult),
                 executorService);
     }
 
@@ -527,7 +565,17 @@ public class RealtimeReconService {
     public CompletableFuture<ReconResult> reconNotifyBySubAsync(String merchantId, String subOrderNo,
             String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
         return CompletableFuture.supplyAsync(
-                () -> reconNotify(null, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult),
+                () -> reconNotify(null, merchantId, subOrderNo, null, notifyUrl, notifyStatus, notifyResult),
+                executorService);
+    }
+
+    /**
+     * 异步对账通知回调 (通过商户号和商户订单号识别)
+     */
+    public CompletableFuture<ReconResult> reconNotifyByMerchantOrderAsync(String merchantId, String merchantOrderNo,
+            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
+        return CompletableFuture.supplyAsync(
+                () -> reconNotify(null, merchantId, null, merchantOrderNo, notifyUrl, notifyStatus, notifyResult),
                 executorService);
     }
 

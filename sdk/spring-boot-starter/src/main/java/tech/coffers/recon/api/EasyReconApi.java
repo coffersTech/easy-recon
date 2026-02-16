@@ -134,7 +134,24 @@ public class EasyReconApi {
      */
     public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String notifyUrl,
             NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotify(orderNo, merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult);
+        return realtimeReconService.reconNotify(orderNo, merchantId, subOrderNo, null, notifyUrl, notifyStatus,
+                notifyResult);
+    }
+
+    /**
+     * 对账通知回调处理 (基于商户原始订单号识别)
+     *
+     * @param merchantId      商户号
+     * @param merchantOrderNo 商户原始订单号
+     * @param notifyUrl       通知地址
+     * @param notifyStatus    通知结果状态
+     * @param notifyResult    通知返回原始结果
+     * @return 对账处理结果
+     */
+    public ReconResult reconNotifyByMerchantOrder(String merchantId, String merchantOrderNo, String notifyUrl,
+            NotifyStatusEnum notifyStatus, String notifyResult) {
+        return realtimeReconService.reconNotifyByMerchantOrder(merchantId, merchantOrderNo, notifyUrl, notifyStatus,
+                notifyResult);
     }
 
     /**
@@ -185,6 +202,16 @@ public class EasyReconApi {
     public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String subOrderNo,
             String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
         return realtimeReconService.reconNotifyAsync(orderNo, merchantId, subOrderNo, notifyUrl, notifyStatus,
+                notifyResult);
+    }
+
+    /**
+     * 异步对账通知回调处理 (基于商户原始订单号识别)
+     */
+    public CompletableFuture<ReconResult> reconNotifyByMerchantOrderAsync(String merchantId, String merchantOrderNo,
+            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
+        return realtimeReconService.reconNotifyByMerchantOrderAsync(merchantId, merchantOrderNo, notifyUrl,
+                notifyStatus,
                 notifyResult);
     }
 
@@ -285,6 +312,22 @@ public class EasyReconApi {
     }
 
     /**
+     * 执行退款对账 (基于商户原始订单号识别)
+     *
+     * @param merchantId      商户号
+     * @param merchantOrderNo 商户原始订单号
+     * @param refundAmount    退款金额
+     * @param refundTime      退款时间
+     * @param refundStatus    退款状态
+     * @return 对账结果
+     */
+    public ReconResult reconRefundByMerchantOrder(String merchantId, String merchantOrderNo, BigDecimal refundAmount,
+            LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        return realtimeReconService.reconRefundByMerchantOrder(merchantId, merchantOrderNo, refundAmount, refundTime,
+                refundStatus);
+    }
+
+    /**
      * 异步执行退款对账 (基于子订单识别 - 简化版)
      */
     public CompletableFuture<ReconResult> reconRefundBySubAsync(String merchantId, String subOrderNo,
@@ -310,6 +353,15 @@ public class EasyReconApi {
         return realtimeReconService.reconRefundBySubAsync(merchantId, subOrderNo, refundAmount, refundTime,
                 refundStatus,
                 splitDetails);
+    }
+
+    /**
+     * 异步执行退款对账 (基于商户原始订单号识别)
+     */
+    public CompletableFuture<ReconResult> reconRefundByMerchantOrderAsync(String merchantId, String merchantOrderNo,
+            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus) {
+        return realtimeReconService.reconRefundByMerchantOrderAsync(merchantId, merchantOrderNo, refundAmount,
+                refundTime, refundStatus);
     }
 
     // ==================== 定时对账触发 ====================

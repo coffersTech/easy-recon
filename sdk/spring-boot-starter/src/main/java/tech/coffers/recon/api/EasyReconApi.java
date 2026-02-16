@@ -12,13 +12,13 @@ import tech.coffers.recon.core.service.TimingReconService;
 import tech.coffers.recon.entity.ReconExceptionDO;
 import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.entity.ReconOrderSplitSubDO;
+import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
 import tech.coffers.recon.entity.ReconSummaryDO;
 import tech.coffers.recon.repository.ReconRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -226,7 +226,7 @@ public class EasyReconApi {
      * @return 对账结果 (true: 成功, false: 失败)
      */
     public ReconResult reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime,
-            RefundStatusEnum refundStatus, Map<String, BigDecimal> splitDetails) {
+            RefundStatusEnum refundStatus, List<ReconOrderRefundSplitSubDO> splitDetails) {
         return realtimeReconService.reconRefund(orderNo, refundAmount,
                 refundTime, refundStatus, splitDetails);
     }
@@ -243,7 +243,7 @@ public class EasyReconApi {
      */
     public CompletableFuture<ReconResult> reconRefundAsync(String orderNo, BigDecimal refundAmount,
             LocalDateTime refundTime, RefundStatusEnum refundStatus,
-            Map<String, BigDecimal> splitDetails) {
+            List<ReconOrderRefundSplitSubDO> splitDetails) {
         return realtimeReconService
                 .reconRefundAsync(orderNo, refundAmount, refundTime, refundStatus, splitDetails);
     }

@@ -536,11 +536,12 @@ public class JdbcReconRepository implements ReconRepository {
                 public void setValues(PreparedStatement ps, int i) throws SQLException {
                     ReconOrderRefundSplitSubDO subDO = refundSplitSubDOs.get(i);
                     ps.setString(1, subDO.getOrderNo());
-                    ps.setString(2, subDO.getMerchantId());
-                    ps.setBigDecimal(3, subDO.getRefundSplitAmount());
-                    ps.setObject(4, subDO.getRefundSplitAmountFen());
-                    ps.setObject(5, subDO.getCreateTime());
-                    ps.setObject(6, subDO.getUpdateTime());
+                    ps.setString(2, subDO.getSubOrderNo());
+                    ps.setString(3, subDO.getMerchantId());
+                    ps.setBigDecimal(4, subDO.getRefundSplitAmount());
+                    ps.setObject(5, subDO.getRefundSplitAmountFen());
+                    ps.setObject(6, subDO.getCreateTime());
+                    ps.setObject(7, subDO.getUpdateTime());
                 }
 
                 @Override
@@ -847,6 +848,7 @@ public class JdbcReconRepository implements ReconRepository {
             ReconOrderRefundSplitSubDO subDO = new ReconOrderRefundSplitSubDO();
             subDO.setId(rs.getLong("id"));
             subDO.setOrderNo(rs.getString("order_no"));
+            subDO.setSubOrderNo(rs.getString("sub_order_no"));
             subDO.setMerchantId(rs.getString("merchant_id"));
             subDO.setRefundSplitAmount(rs.getBigDecimal("refund_split_amount"));
             subDO.setRefundSplitAmountFen(rs.getObject("refund_split_amount_fen", Long.class));

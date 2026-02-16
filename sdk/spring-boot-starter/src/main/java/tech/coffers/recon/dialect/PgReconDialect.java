@@ -72,7 +72,7 @@ public class PgReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderRefundSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, merchant_id, refund_split_amount, refund_split_amount_fen, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)";
+                + " (order_no, sub_order_no, merchant_id, refund_split_amount, refund_split_amount_fen, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**

@@ -16,9 +16,7 @@ import tech.coffers.recon.repository.ReconRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import org.springframework.transaction.annotation.Transactional;
@@ -199,7 +197,7 @@ public class RealtimeReconService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ReconResult reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime,
-            RefundStatusEnum refundStatus, Map<String, BigDecimal> splitDetails) {
+            RefundStatusEnum refundStatus, List<ReconOrderRefundSplitSubDO> splitDetails) {
         try {
             RefundStatusEnum refundEnum = refundStatus != null ? refundStatus : RefundStatusEnum.PROCESSING;
             // 1. 查询原订单
@@ -217,8 +215,10 @@ public class RealtimeReconService {
             // 3. 校验退款分账总额
             BigDecimal splitTotal = BigDecimal.ZERO;
             if (splitDetails != null) {
-                for (BigDecimal amount : splitDetails.values()) {
-                    splitTotal = splitTotal.add(amount);
+                for (ReconOrderRefundSplitSubDO sub : splitDetails) {
+                    if (sub.getRefundSplitAmount() != null) {
+                        splitTotal = splitTotal.add(sub.getRefundSplitAmount());
+                    }
                 }
             }
             // 退款分账总额 <= 退款金额 (允许有误差吗？通常退款应该精确匹配，或者小于等于)
@@ -238,17 +238,16 @@ public class RealtimeReconService {
 
             // 5. 保存退款分账子记录
             if (splitDetails != null && !splitDetails.isEmpty()) {
-                List<ReconOrderRefundSplitSubDO> refundSplitSubDOs = new ArrayList<>();
-                for (Map.Entry<String, BigDecimal> entry : splitDetails.entrySet()) {
-                    ReconOrderRefundSplitSubDO subDO = new ReconOrderRefundSplitSubDO();
+                for (ReconOrderRefundSplitSubDO subDO : splitDetails) {
                     subDO.setOrderNo(orderNo);
-                    subDO.setMerchantId(entry.getKey());
-                    subDO.setRefundSplitAmount(entry.getValue());
-                    subDO.setCreateTime(LocalDateTime.now());
-                    subDO.setUpdateTime(LocalDateTime.now());
-                    refundSplitSubDOs.add(subDO);
+                    if (subDO.getCreateTime() == null) {
+                        subDO.setCreateTime(LocalDateTime.now());
+                    }
+                    if (subDO.getUpdateTime() == null) {
+                        subDO.setUpdateTime(LocalDateTime.now());
+                    }
                 }
-                reconRepository.batchSaveOrderRefundSplitSub(refundSplitSubDOs);
+                reconRepository.batchSaveOrderRefundSplitSub(splitDetails);
             }
 
             return ReconResult.success(orderNo);
@@ -271,7 +270,7 @@ public class RealtimeReconService {
      * @return 异步对账结果
      */
     public CompletableFuture<ReconResult> reconRefundAsync(String orderNo, BigDecimal refundAmount,
-            LocalDateTime refundTime, RefundStatusEnum refundStatus, Map<String, BigDecimal> splitDetails) {
+            LocalDateTime refundTime, RefundStatusEnum refundStatus, List<ReconOrderRefundSplitSubDO> splitDetails) {
         return CompletableFuture.supplyAsync(
                 () -> reconRefund(orderNo, refundAmount, refundTime, refundStatus, splitDetails), executorService);
     }

@@ -33,6 +33,11 @@ public class ReconOrderRefundSplitSubDO {
     private String merchantId;
 
     /**
+     * 子订单号 (退款分账明细唯一标识)
+     */
+    private String subOrderNo;
+
+    /**
      * 本次退至商户侧的分账金额 (元)
      */
     private BigDecimal refundSplitAmount;

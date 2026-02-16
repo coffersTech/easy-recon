@@ -8,6 +8,7 @@ import tech.coffers.recon.api.EasyReconApi;
 import tech.coffers.recon.api.result.ReconResult;
 import tech.coffers.recon.entity.ReconOrderMainDO;
 import tech.coffers.recon.entity.ReconOrderSplitSubDO;
+import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
 import tech.coffers.recon.entity.ReconSummaryDO;
 import tech.coffers.recon.api.enums.PayStatusEnum;
 import tech.coffers.recon.api.enums.SplitStatusEnum;
@@ -18,8 +19,6 @@ import tech.coffers.recon.api.result.PageResult;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -121,9 +120,13 @@ public class DemoApplication implements CommandLineRunner {
         LocalDateTime refundTime = LocalDateTime.now();
         RefundStatusEnum refundStatus = RefundStatusEnum.SUCCESS; // 假设处理成功
 
-        // 模拟退款扣回分账明细
-        Map<String, BigDecimal> refundSplits = new HashMap<>();
-        refundSplits.put("MCH-SUB-001", new BigDecimal("50.00"));
+        // 模拟退款扣回分账明细 (使用 DO 列表以支持子订单号)
+        List<ReconOrderRefundSplitSubDO> refundSplits = new ArrayList<>();
+        ReconOrderRefundSplitSubDO sub = new ReconOrderRefundSplitSubDO();
+        sub.setSubOrderNo(orderNo + "-1");
+        sub.setMerchantId("MCH-SUB-001");
+        sub.setRefundSplitAmount(new BigDecimal("50.00"));
+        refundSplits.add(sub);
 
         ReconResult result = easyReconApi.reconRefund(orderNo, refundAmount, refundTime, refundStatus, refundSplits);
 
@@ -153,8 +156,12 @@ public class DemoApplication implements CommandLineRunner {
         easyReconApi.reconOrder(asyncOrderNo, new BigDecimal("100.00"), BigDecimal.ZERO, BigDecimal.ZERO,
                 splits, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS, NotifyStatusEnum.SUCCESS);
 
-        Map<String, BigDecimal> refundSplits = new HashMap<>();
-        refundSplits.put("MCH-001", new BigDecimal("20.00"));
+        List<ReconOrderRefundSplitSubDO> refundSplits = new ArrayList<>();
+        ReconOrderRefundSplitSubDO refundSub = new ReconOrderRefundSplitSubDO();
+        refundSub.setSubOrderNo(asyncOrderNo + "-S1");
+        refundSub.setMerchantId("MCH-001");
+        refundSub.setRefundSplitAmount(new BigDecimal("20.00"));
+        refundSplits.add(refundSub);
 
         easyReconApi.reconRefundAsync(asyncOrderNo, new BigDecimal("20.00"), LocalDateTime.now(),
                 RefundStatusEnum.SUCCESS, refundSplits)

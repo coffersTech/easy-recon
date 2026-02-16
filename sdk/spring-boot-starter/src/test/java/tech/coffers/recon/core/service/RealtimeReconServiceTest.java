@@ -7,6 +7,7 @@ import org.mockito.MockitoAnnotations;
 import tech.coffers.recon.api.result.ReconResult;
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
 import tech.coffers.recon.entity.ReconOrderMainDO;
+import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
 import tech.coffers.recon.entity.ReconOrderSplitSubDO;
 import tech.coffers.recon.api.enums.PayStatusEnum;
 import tech.coffers.recon.api.enums.SplitStatusEnum;
@@ -18,9 +19,7 @@ import tech.coffers.recon.repository.ReconRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -269,8 +268,11 @@ class RealtimeReconServiceTest {
                 String merchantId = "MERCHANT_001";
                 BigDecimal refundAmount = new BigDecimal("50.00");
                 LocalDateTime refundTime = LocalDateTime.now();
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
-                splitDetails.put(merchantId, new BigDecimal("50.00"));
+                List<ReconOrderRefundSplitSubDO> splitDetails = new ArrayList<>();
+                ReconOrderRefundSplitSubDO sub = new ReconOrderRefundSplitSubDO();
+                sub.setMerchantId(merchantId);
+                sub.setRefundSplitAmount(new BigDecimal("50.00"));
+                splitDetails.add(sub);
 
                 // 模拟原订单存在
                 ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
@@ -308,7 +310,7 @@ class RealtimeReconServiceTest {
 
                 BigDecimal refundAmount = new BigDecimal("150.00"); // 退款 > 实付
                 LocalDateTime refundTime = LocalDateTime.now();
-                Map<String, BigDecimal> splitDetails = new HashMap<>();
+                List<ReconOrderRefundSplitSubDO> splitDetails = new ArrayList<>();
 
                 // 模拟原订单
                 ReconOrderMainDO orderMainDO = new ReconOrderMainDO();

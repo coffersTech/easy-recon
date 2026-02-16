@@ -85,6 +85,7 @@ COMMENT ON COLUMN "easy_recon_order_split_sub"."update_time" IS '更新时间';
 CREATE TABLE IF NOT EXISTS "easy_recon_order_refund_split_sub" (
   "id" BIGSERIAL NOT NULL PRIMARY KEY,
   "order_no" VARCHAR(64) NOT NULL,
+  "sub_order_no" VARCHAR(64),
   "merchant_id" VARCHAR(64) NOT NULL,
   "refund_split_amount" DECIMAL(18,2) NOT NULL,
   "refund_split_amount_fen" BIGINT,
@@ -95,6 +96,7 @@ CREATE TABLE IF NOT EXISTS "easy_recon_order_refund_split_sub" (
 COMMENT ON TABLE "easy_recon_order_refund_split_sub" IS '对账订单退款分账子记录';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."id" IS '主键 ID';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."order_no" IS '订单号';
+COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."sub_order_no" IS '子订单号';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."merchant_id" IS '商户 ID';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."refund_split_amount" IS '退款分账金额';
 COMMENT ON COLUMN "easy_recon_order_refund_split_sub"."refund_split_amount_fen" IS '退款分账金额（分）';

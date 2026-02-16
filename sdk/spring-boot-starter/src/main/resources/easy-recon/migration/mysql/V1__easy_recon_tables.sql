@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS `easy_recon_order_split_sub` (
 CREATE TABLE IF NOT EXISTS `easy_recon_order_refund_split_sub` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `order_no` VARCHAR(64) NOT NULL COMMENT '订单号',
+  `sub_order_no` VARCHAR(64) NULL COMMENT '子订单号',
   `merchant_id` VARCHAR(64) NOT NULL COMMENT '商户 ID',
   `refund_split_amount` DECIMAL(18,2) NOT NULL COMMENT '退款分账金额',
   `refund_split_amount_fen` BIGINT COMMENT '退款分账金额（分）',

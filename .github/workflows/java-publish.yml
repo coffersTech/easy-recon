@@ -10,15 +10,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      id-token: write  # 用于Maven Central签名验证（可选）
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -31,14 +29,41 @@ jobs:
           server-id: ossrh
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
-          gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+      # --- 诊断步骤开始 ---
+      - name: GPG Diagnosis & Key Import
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+      - name: Check GPG Environment
+        run: |
+          echo "==== 1. 检查已加载的私钥 ===="
+          gpg --list-secret-keys --keyid-format LONG
+          
+          echo "==== 2. 检查密码 Secret 格式 (安全检查) ===="
+          if [ -z "$GPG_PASS" ]; then
+            echo "错误: MAVEN_GPG_PASSPHRASE 为空！"
+            exit 1
+          else
+            echo "密码长度: ${#GPG_PASS} 字符"
+            echo "密码行数: $(echo "$GPG_PASS" | wc -l)"
+          fi
+        env:
+          GPG_PASS: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+      # --- 诊断步骤结束 ---
 
       - name: Build with Maven
         run: mvn -B clean package --file sdk/spring-boot-starter/pom.xml
 
       - name: Publish to Maven Central
-        run: mvn -B deploy --file sdk/spring-boot-starter/pom.xml -P release -DskipTests -Dgpg.passphrase="${{ secrets.MAVEN_GPG_PASSPHRASE }}"
+        run: |
+          mvn -B deploy \
+            --file sdk/spring-boot-starter/pom.xml \
+            -P release \
+            -DskipTests \
+            -Dgpg.passphrase='${{ secrets.MAVEN_GPG_PASSPHRASE }}'
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}

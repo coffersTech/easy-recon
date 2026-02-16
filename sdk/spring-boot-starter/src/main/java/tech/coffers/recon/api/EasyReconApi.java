@@ -420,13 +420,43 @@ public class EasyReconApi {
     }
 
     /**
-     * 获取对账统计数据
+     * 查询对账统计数据
      *
      * @param dateStr 日期 (yyyy-MM-dd)
      * @return 统计数据
      */
     public ReconSummaryDO getReconSummary(String dateStr) {
         return reconRepository.getReconSummary(dateStr);
+    }
+
+    /**
+     * 查询分账明细
+     *
+     * @param orderNo 订单号
+     * @return 分账明细列表
+     */
+    public List<ReconOrderSplitSubDO> getSplitDetails(String orderNo) {
+        return reconRepository.getOrderSplitSubByOrderNo(orderNo);
+    }
+
+    /**
+     * 查询退款分账明细
+     *
+     * @param orderNo 订单号
+     * @return 退款分账明细列表
+     */
+    public List<ReconOrderRefundSplitSubDO> getRefundSplitDetails(String orderNo) {
+        return reconRepository.getOrderRefundSplitSubByOrderNo(orderNo);
+    }
+
+    /**
+     * 查询通知日志
+     *
+     * @param orderNo 订单号
+     * @return 通知日志列表
+     */
+    public List<tech.coffers.recon.entity.ReconNotifyLogDO> getNotifyLogs(String orderNo) {
+        return reconRepository.getNotifyLogsByOrderNo(orderNo);
     }
 
     /**

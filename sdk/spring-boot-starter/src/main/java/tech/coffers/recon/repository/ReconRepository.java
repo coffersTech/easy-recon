@@ -210,4 +210,12 @@ public interface ReconRepository {
         long countOrderMainByDate(String dateStr, ReconStatusEnum reconStatus);
 
         long countExceptionRecords(String merchantId, String startDate, String endDate, Integer exceptionStep);
+
+        /**
+         * 根据主订单号查询关联的通知日志
+         *
+         * @param orderNo 订单号
+         * @return 通知日志列表
+         */
+        List<ReconNotifyLogDO> getNotifyLogsByOrderNo(String orderNo);
 }

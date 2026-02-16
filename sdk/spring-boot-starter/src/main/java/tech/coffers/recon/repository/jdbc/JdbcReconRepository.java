@@ -803,114 +803,129 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
-    /**
-     * 订单主记录行映射器
-     */
+    @Override
+    public List<ReconNotifyLogDO> getNotifyLogsByOrderNo(String orderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "notify_log";
+            String sql = "SELECT * FROM " + tableName + " WHERE order_no = ? ORDER BY create_time DESC";
+            return jdbcTemplate.query(sql, new NotifyLogRowMapper(), orderNo);
+        } catch (Exception e) {
+            log.error("根据订单号查询通知日志失败，订单号: {}", orderNo, e);
+            return Collections.emptyList();
+        }
+    }
+
+    // ==================== RowMapper ====================
+
     private static class OrderMainRowMapper implements RowMapper<ReconOrderMainDO> {
         @Override
         public ReconOrderMainDO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ReconOrderMainDO mainDO = new ReconOrderMainDO();
-            mainDO.setId(rs.getLong("id"));
-            mainDO.setOrderNo(rs.getString("order_no"));
-
-            mainDO.setPayAmount(rs.getBigDecimal("pay_amount"));
-            mainDO.setPayAmountFen(rs.getObject("pay_amount_fen", Long.class));
-            mainDO.setPlatformIncome(rs.getBigDecimal("platform_income"));
-            mainDO.setPlatformIncomeFen(rs.getObject("platform_income_fen", Long.class));
-            mainDO.setPayFee(rs.getBigDecimal("pay_fee"));
-            mainDO.setPayFeeFen(rs.getObject("pay_fee_fen", Long.class));
-            mainDO.setSplitTotalAmount(rs.getBigDecimal("split_total_amount"));
-            mainDO.setSplitTotalAmountFen(rs.getObject("split_total_amount_fen", Long.class));
-            mainDO.setPayStatus(rs.getInt("pay_status"));
-            mainDO.setSplitStatus(rs.getInt("split_status"));
-            mainDO.setNotifyStatus(rs.getInt("notify_status"));
-            mainDO.setNotifyResult(rs.getString("notify_result"));
-            mainDO.setReconStatus(rs.getInt("recon_status"));
-            mainDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
-            mainDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
-            mainDO.setRefundAmount(rs.getBigDecimal("refund_amount"));
-            mainDO.setRefundAmountFen(rs.getObject("refund_amount_fen", Long.class));
-            mainDO.setRefundStatus(rs.getInt("refund_status"));
-            mainDO.setRefundTime(rs.getObject("refund_time", LocalDateTime.class));
-            return mainDO;
+            ReconOrderMainDO order = new ReconOrderMainDO();
+            order.setOrderNo(rs.getString("order_no"));
+            order.setPayAmount(rs.getBigDecimal("pay_amount"));
+            order.setPayAmountFen(rs.getObject("pay_amount_fen", Long.class));
+            order.setPlatformIncome(rs.getBigDecimal("platform_income"));
+            order.setPlatformIncomeFen(rs.getObject("platform_income_fen", Long.class));
+            order.setPayFee(rs.getBigDecimal("pay_fee"));
+            order.setPayFeeFen(rs.getObject("pay_fee_fen", Long.class));
+            order.setSplitTotalAmount(rs.getBigDecimal("split_total_amount"));
+            order.setSplitTotalAmountFen(rs.getObject("split_total_amount_fen", Long.class));
+            order.setPayStatus(rs.getInt("pay_status"));
+            order.setSplitStatus(rs.getInt("split_status"));
+            order.setNotifyStatus(rs.getInt("notify_status"));
+            order.setNotifyResult(rs.getString("notify_result"));
+            order.setReconStatus(rs.getInt("recon_status"));
+            order.setRefundStatus(rs.getObject("refund_status", Integer.class));
+            order.setRefundAmount(rs.getBigDecimal("refund_amount"));
+            order.setRefundAmountFen(rs.getObject("refund_amount_fen", Long.class));
+            order.setRefundTime(rs.getObject("refund_time", LocalDateTime.class));
+            order.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            order.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return order;
         }
     }
 
-    /**
-     * 分账子记录行映射器
-     */
     private static class OrderSplitSubRowMapper implements RowMapper<ReconOrderSplitSubDO> {
         @Override
         public ReconOrderSplitSubDO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ReconOrderSplitSubDO subDO = new ReconOrderSplitSubDO();
-            subDO.setId(rs.getLong("id"));
-            subDO.setOrderNo(rs.getString("order_no"));
-            subDO.setSubOrderNo(rs.getString("sub_order_no"));
-            subDO.setMerchantId(rs.getString("merchant_id"));
-            subDO.setSplitAmount(rs.getBigDecimal("split_amount"));
-            subDO.setSplitAmountFen(rs.getObject("split_amount_fen", Long.class));
-            subDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
-            subDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
-            subDO.setNotifyStatus(rs.getInt("notify_status"));
-            subDO.setNotifyResult(rs.getString("notify_result"));
-            return subDO;
+            ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+            sub.setId(rs.getLong("id"));
+            sub.setOrderNo(rs.getString("order_no"));
+            sub.setSubOrderNo(rs.getString("sub_order_no"));
+            sub.setMerchantId(rs.getString("merchant_id"));
+            sub.setMerchantOrderNo(rs.getString("merchant_order_no"));
+            sub.setSplitAmount(rs.getBigDecimal("split_amount"));
+            sub.setSplitAmountFen(rs.getObject("split_amount_fen", Long.class));
+            sub.setNotifyStatus(rs.getInt("notify_status"));
+            sub.setNotifyResult(rs.getString("notify_result"));
+            sub.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            sub.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return sub;
         }
     }
 
-    /**
-     * 退款分账子记录行映射器
-     */
     private static class OrderRefundSplitSubRowMapper implements RowMapper<ReconOrderRefundSplitSubDO> {
         @Override
         public ReconOrderRefundSplitSubDO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ReconOrderRefundSplitSubDO subDO = new ReconOrderRefundSplitSubDO();
-            subDO.setId(rs.getLong("id"));
-            subDO.setOrderNo(rs.getString("order_no"));
-            subDO.setSubOrderNo(rs.getString("sub_order_no"));
-            subDO.setMerchantId(rs.getString("merchant_id"));
-            subDO.setRefundSplitAmount(rs.getBigDecimal("refund_split_amount"));
-            subDO.setRefundSplitAmountFen(rs.getObject("refund_split_amount_fen", Long.class));
-            subDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
-            subDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
-            return subDO;
+            ReconOrderRefundSplitSubDO sub = new ReconOrderRefundSplitSubDO();
+            sub.setId(rs.getLong("id"));
+            sub.setOrderNo(rs.getString("order_no"));
+            sub.setSubOrderNo(rs.getString("sub_order_no"));
+            sub.setMerchantId(rs.getString("merchant_id"));
+            sub.setMerchantOrderNo(rs.getString("merchant_order_no"));
+            sub.setRefundSplitAmount(rs.getBigDecimal("refund_split_amount"));
+            sub.setRefundSplitAmountFen(rs.getObject("refund_split_amount_fen", Long.class));
+            sub.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            sub.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return sub;
         }
     }
 
-    /**
-     * 异常记录行映射器
-     */
     private static class ExceptionRowMapper implements RowMapper<ReconExceptionDO> {
         @Override
         public ReconExceptionDO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ReconExceptionDO exceptionDO = new ReconExceptionDO();
-            exceptionDO.setId(rs.getLong("id"));
-            exceptionDO.setOrderNo(rs.getString("order_no"));
-            exceptionDO.setMerchantId(rs.getString("merchant_id"));
-            exceptionDO.setExceptionMsg(rs.getString("exception_msg"));
-            exceptionDO.setExceptionStep(rs.getInt("exception_step"));
-            exceptionDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
-            exceptionDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
-            return exceptionDO;
+            ReconExceptionDO exception = new ReconExceptionDO();
+            exception.setId(rs.getLong("id"));
+            exception.setOrderNo(rs.getString("order_no"));
+            exception.setMerchantId(rs.getString("merchant_id"));
+            exception.setExceptionMsg(rs.getString("exception_msg"));
+            exception.setExceptionStep(rs.getInt("exception_step"));
+            exception.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            exception.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return exception;
         }
     }
 
-    /**
-     * 对账规则行映射器
-     */
     private static class ReconRuleRowMapper implements RowMapper<ReconRuleDO> {
         @Override
         public ReconRuleDO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ReconRuleDO ruleDO = new ReconRuleDO();
-            ruleDO.setId(rs.getLong("id"));
-            ruleDO.setRuleName(rs.getString("rule_name"));
-            ruleDO.setRuleType(rs.getInt("rule_type"));
-            ruleDO.setRuleExpression(rs.getString("rule_expression"));
-            ruleDO.setRuleDesc(rs.getString("rule_desc"));
-            ruleDO.setStatus(rs.getInt("status"));
-            ruleDO.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
-            ruleDO.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
-            return ruleDO;
+            ReconRuleDO rule = new ReconRuleDO();
+            rule.setId(rs.getLong("id"));
+            rule.setRuleName(rs.getString("rule_name"));
+            rule.setRuleType(rs.getInt("rule_type"));
+            rule.setRuleExpression(rs.getString("rule_expression"));
+            rule.setRuleDesc(rs.getString("rule_desc"));
+            rule.setStatus(rs.getInt("status"));
+            rule.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            rule.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return rule;
         }
     }
 
+    private static class NotifyLogRowMapper implements RowMapper<ReconNotifyLogDO> {
+        @Override
+        public ReconNotifyLogDO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ReconNotifyLogDO log = new ReconNotifyLogDO();
+            log.setId(rs.getLong("id"));
+            log.setOrderNo(rs.getString("order_no"));
+            log.setSubOrderNo(rs.getString("sub_order_no"));
+            log.setMerchantId(rs.getString("merchant_id"));
+            log.setNotifyUrl(rs.getString("notify_url"));
+            log.setNotifyStatus(rs.getInt("notify_status"));
+            log.setNotifyResult(rs.getString("notify_result"));
+            log.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            log.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return log;
+        }
+    }
 }

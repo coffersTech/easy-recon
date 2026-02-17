@@ -9,7 +9,7 @@ requirements = [
 
 setup(
     name="easy-recon-sdk",
-    version="1.0.0",
+    version=os.getenv("SDK_VERSION", "1.0.0"),
     packages=find_packages(),
     description="Easy Recon SDK for Python",
     author="Coffers Tech",

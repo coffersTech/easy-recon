@@ -132,7 +132,31 @@ boolean reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refun
 CompletableFuture<Boolean> reconRefundAsync(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime, int refundStatus, Map<String, BigDecimal> splitDetails);
 ```
 
-#### 5. 定时对账触发
+#### 5. 通知对账（回调处理）
+
+用于处理外部系统（如支付网关、分账系统）的异步通知结果。
+
+```java
+/**
+ * 对账通知回调处理
+ *
+ * @param orderNo      业务主订单号
+ * @param merchantId   触发通知的商户号 (SELF 代表主订单，其他代表子订单商户)
+ * @param notifyUrl    接收通知的地址
+ * @param notifyStatus 通知后的最终状态 (SUCCESS/FAILURE)
+ * @param notifyResult 通知返回的原始报文
+ * @return 对账结果
+ */
+ReconResult reconNotify(String orderNo, String merchantId, String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult);
+
+// 变体：基于子订单号识别
+ReconResult reconNotifyBySub(String merchantId, String subOrderNo, String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult);
+
+// 变体：基于商户原始订单号识别
+ReconResult reconNotifyByMerchantOrder(String merchantId, String merchantOrderNo, String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult);
+```
+
+#### 6. 定时对账触发
 
 手动触发指定日期的定时对账任务（通常由定时任务自动调用）。
 
@@ -144,7 +168,7 @@ boolean doTimingRecon(String dateStr); // dateStr 格式: yyyy-MM-dd
 boolean doTimingRefundRecon(String dateStr);
 ```
 
-#### 6. 查询与重试
+#### 7. 查询与重试
 
 SDK 提供了对账状态、异常信息、统计数据的查询接口，以及手动重试功能。
 
@@ -248,6 +272,10 @@ public void handleRefund(String orderNo, BigDecimal refundAmount) {
         LocalDateTime.now(), 
         1, // 1=部分退款, 2=全额退款
         splitDetails
+    );
+}
+```
+
 ### 5. 退款对账（异步）
 
 ```java
@@ -259,9 +287,37 @@ public void handleRefundAsync(String orderNo, BigDecimal refundAmount) {
             // 处理异步结果
         });
 }
+    easyReconApi.reconRefundAsync(orderNo, refundAmount, LocalDateTime.now(), 1, splitDetails)
+        .thenAccept(result -> {
+            // 处理异步结果
+        });
+}
 ```
 
-### 6. 查询与重试
+### 6. 通知对账（回调处理）
+
+在接收到外部系统的回调通知后调用：
+
+```java
+@PostMapping("/notify/split")
+public String handleSplitNotify(@RequestBody String notifyBody) {
+    // 1. 解析通知
+    SplitNotify notify = parse(notifyBody);
+    
+    // 2. 更新对账状态
+    ReconResult result = easyReconApi.reconNotifyBySub(
+        notify.getMerchantId(),
+        notify.getSubOrderNo(),
+        "/notify/split",
+        notify.isSuccess() ? NotifyStatusEnum.SUCCESS : NotifyStatusEnum.FAILURE,
+        notifyBody
+    );
+    
+    return "success";
+}
+```
+
+### 7. 查询与重试
 
 ```java
 public void queryAndRetry(String orderNo) {

@@ -1,0 +1,11 @@
+easy-recon:
+  enabled: true
+  auto-init-tables: true
+  amount-tolerance: 0.01
+  batch-size: 500
+  alarm:
+    type: "log"
+
+database:
+  driver: "postgres"
+  dsn: "host=localhost user=postgresql password=postgresql dbname=easy_recon_demo port=5432 sslmode=disable"

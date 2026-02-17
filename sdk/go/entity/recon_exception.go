@@ -6,7 +6,7 @@ import (
 
 // ReconException 对账异常记录
 type ReconException struct {
-	ID            int64     `json:"id"`
+	ID            int64     `json:"id" gorm:"primaryKey"`
 	OrderNo       string    `json:"orderNo"`
 	MerchantId    string    `json:"merchantId"`
 	ExceptionType int       `json:"exceptionType"`

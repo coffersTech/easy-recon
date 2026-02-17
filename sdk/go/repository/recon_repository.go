@@ -41,4 +41,19 @@ type ReconRepository interface {
 
 	// 根据订单号查询对账异常记录
 	GetExceptionByOrderNo(orderNo string) (*entity.ReconException, error)
+
+	// 保存对账汇总统计
+	SaveSummary(summary *entity.ReconSummary) (bool, error)
+
+	// 保存对账通知日志
+	SaveNotifyLog(notifyLog *entity.ReconNotifyLog) (bool, error)
+
+	// BatchSaveOrderRefundSplitSub 批量保存退款分账子记录
+	BatchSaveOrderRefundSplitSub(refundSplitSubs []*entity.ReconOrderRefundSplitSub) (bool, error)
+
+	// GetOrderMainByMerchantOrderNo 根据商户原始订单号查询对账订单主记录
+	GetOrderMainByMerchantOrderNo(merchantId, merchantOrderNo string) (*entity.ReconOrderMain, error)
+
+	// GetOrderSplitSubBySubOrderNo 根据子订单号查询分账子记录
+	GetOrderSplitSubBySubOrderNo(merchantId, subOrderNo string) (*entity.ReconOrderSplitSub, error)
 }

@@ -21,7 +21,11 @@ jobs:
     - name: Extract version
       id: extract_version
       run: |
-        VERSION=${GITHUB_REF#refs/tags/sdk/python/v}
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/sdk/python/v}
+        else
+          VERSION="0.0.0.dev"
+        fi
         echo "SDK_VERSION=$VERSION" >> $GITHUB_ENV
         echo "Released version: $VERSION"
     

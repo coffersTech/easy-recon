@@ -3,7 +3,7 @@ name: Go Package
 on:
   push:
     tags:
-      - 'go/v*'
+      - 'sdk/go/v*'
     paths:
       - 'sdk/go/**'
       - '.github/workflows/go-publish.yml'
@@ -35,6 +35,7 @@ jobs:
           GOPROXY=https://goproxy.io,direct \
           GOSUMDB=off \
           go mod tidy
-          go list -m github.com/coffersTech/easy-recon/sdk/go@${{ github.ref_name }}
+          VERSION=${GITHUB_REF_NAME#sdk/go/}
+          go list -m github.com/coffersTech/easy-recon/sdk/go@${VERSION}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

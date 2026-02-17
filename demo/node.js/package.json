@@ -1,0 +1,15 @@
+{
+    "name": "easy-recon-node-demo",
+    "version": "1.0.0",
+    "description": "Easy Recon SDK Node.js Demo",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "pg": "^8.11.3",
+        "decimal.js": "^10.4.3"
+    },
+    "author": "",
+    "license": "ISC"
+}

@@ -1,3 +1,6 @@
+const https = require('https');
+const url = require('url');
+
 /**
  * 告警服务
  */
@@ -14,8 +17,10 @@ class AlarmService {
    * 发送告警
    * @param {string} message - 告警消息
    */
-  sendAlarm(message) {
-    this.strategy.sendAlarm(message);
+  async sendAlarm(message) {
+    if (this.strategy) {
+      await this.strategy.sendAlarm(message);
+    }
   }
 }
 
@@ -27,7 +32,7 @@ class AlarmStrategy {
    * 发送告警
    * @param {string} message - 告警消息
    */
-  sendAlarm(message) {
+  async sendAlarm(message) {
     throw new Error('子类必须实现sendAlarm方法');
   }
 }
@@ -40,9 +45,8 @@ class LogAlarmStrategy extends AlarmStrategy {
    * 发送告警
    * @param {string} message - 告警消息
    */
-  sendAlarm(message) {
-    // 实现日志告警逻辑
-    console.log(`[Log] 告警: ${message}`);
+  async sendAlarm(message) {
+    console.log(`[Recon Alarm] ${message}`);
   }
 }
 
@@ -63,10 +67,47 @@ class DingTalkAlarmStrategy extends AlarmStrategy {
    * 发送告警
    * @param {string} message - 告警消息
    */
-  sendAlarm(message) {
-    // 实现钉钉告警逻辑
-    console.log(`[DingTalk] 发送告警: ${message}`);
-    // 实际实现中需要调用钉钉机器人API
+  async sendAlarm(message) {
+    if (!this.webhookUrl) return;
+
+    const payload = JSON.stringify({
+      msgtype: 'text',
+      text: {
+        content: `[EasyRecon Alarm] ${message}`
+      }
+    });
+
+    const parsedUrl = url.parse(this.webhookUrl);
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.path,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    return new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve();
+        } else {
+          // consume response data to free up memory
+          res.resume();
+          console.error(`DingTalk Alarm Failed: Status Code ${res.statusCode}`);
+          resolve(); // Don't crash on alarm fail
+        }
+      });
+
+      req.on('error', (e) => {
+        console.error(`DingTalk Alarm Error: ${e.message}`);
+        resolve(); // Don't crash
+      });
+
+      req.write(payload);
+      req.end();
+    });
   }
 }
 

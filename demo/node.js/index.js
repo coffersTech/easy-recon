@@ -8,7 +8,7 @@ const {
     ReconOrderSplitSub,
     ReconOrderRefundSplitSub,
     ReconNotifyLog
-} = require('../../sdk/node.js');
+} = require('@cofferstech/easy-recon-sdk');
 const { Client } = require('pg');
 
 // 配置

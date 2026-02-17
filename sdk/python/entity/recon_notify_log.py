@@ -3,15 +3,13 @@ from datetime import datetime
 from typing import Optional
 
 @dataclass
-class ReconOrderSplitSub:
-    """对账订单分账子记录"""
-    order_no: Optional[str] = None
+class ReconNotifyLog:
+    """通知日志"""
+    order_no: str
     sub_order_no: Optional[str] = None
     merchant_id: Optional[str] = None
-    merchant_order_no: Optional[str] = None
-    split_amount: Optional[float] = None
-    
-    notify_status: int = 2
+    notify_url: Optional[str] = None
+    notify_status: int = 0
     notify_result: Optional[str] = None
     
     create_time: Optional[datetime] = None

@@ -13,7 +13,7 @@ with open(os.path.join(os.path.dirname(__file__), "README.md"), "r", encoding="u
 
 setup(
     name="easy-recon-sdk",
-    version=os.getenv("SDK_VERSION", "1.0.0"),
+    version=os.getenv("SDK_VERSION", "1.0.1"),
     packages=find_packages(),
     description="Easy Recon SDK for Python",
     long_description=long_description,

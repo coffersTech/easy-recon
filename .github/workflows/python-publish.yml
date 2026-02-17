@@ -8,6 +8,11 @@ on:
       - 'sdk/python/**'
       - '.github/workflows/python-publish.yml'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 1.0.0)'
+        required: true
+        type: string
 
 jobs:
   deploy:
@@ -21,7 +26,9 @@ jobs:
     - name: Extract version
       id: extract_version
       run: |
-        if [[ $GITHUB_REF == refs/tags/* ]]; then
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ $GITHUB_REF == refs/tags/* ]]; then
           VERSION=${GITHUB_REF#refs/tags/sdk/python/v}
         else
           VERSION="0.0.0.dev"
@@ -45,7 +52,7 @@ jobs:
       run: python -m build
 
     - name: Publish to PyPI
-      if: startsWith(github.ref, 'refs/tags/sdk/python/v')
+      if: startsWith(github.ref, 'refs/tags/sdk/python/v') || github.event_name == 'workflow_dispatch'
       working-directory: ./sdk/python
       env:
         TWINE_USERNAME: __token__

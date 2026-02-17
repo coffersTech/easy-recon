@@ -5,12 +5,24 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/coffersTech/easy-recon.git"
+    "url": "git+https://github.com/coffersTech/easy-recon.git",
+    "directory": "sdk/node.js"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
+  "files": [
+    "index.js",
+    "config/",
+    "core/",
+    "dialect/",
+    "entity/",
+    "repository/",
+    "service/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "echo \"Building Node.js SDK...\""
@@ -19,7 +31,8 @@
     "reconciliation",
     "payment",
     "sdk",
-    "nodejs"
+    "nodejs",
+    "easy-recon"
   ],
   "author": "Ryan",
   "license": "MIT",

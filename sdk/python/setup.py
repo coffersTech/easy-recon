@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 requirements = [
     "mysql-connector-python==8.0.30",
     "psycopg2-binary==2.9.9"
+]
 
 # 读取 README.md 作为长描述
 with open(os.path.join(os.path.dirname(__file__), "README.md"), "r", encoding="utf-8") as fh:

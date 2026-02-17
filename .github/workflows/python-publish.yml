@@ -3,7 +3,7 @@ name: Python Package
 on:
   push:
     tags:
-      - 'python/v*'
+      - 'sdk/python/v*'
     paths:
       - 'sdk/python/**'
       - '.github/workflows/python-publish.yml'
@@ -21,7 +21,7 @@ jobs:
     - name: Extract version
       id: extract_version
       run: |
-        VERSION=${GITHUB_REF#refs/tags/python/v}
+        VERSION=${GITHUB_REF#refs/tags/sdk/python/v}
         echo "SDK_VERSION=$VERSION" >> $GITHUB_ENV
         echo "Released version: $VERSION"
     

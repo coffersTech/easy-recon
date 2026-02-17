@@ -3,7 +3,7 @@ name: Node.js Package
 on:
   push:
     tags:
-      - 'nodejs/v*'
+      - 'sdk/node.js/v*'
     paths:
       - 'sdk/node.js/**'
       - '.github/workflows/nodejs-publish.yml'

@@ -3,7 +3,7 @@ name: Java Package
 on:
   push:
     tags:
-      - 'java/v*'
+      - 'sdk/spring-boot-starter/v*'
     paths:
       - 'sdk/spring-boot-starter/**'
       - '.github/workflows/java-publish.yml'

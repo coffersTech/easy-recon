@@ -16,7 +16,7 @@
 
 ### 表结构
 
-#### 1. 对账订单主表 (`recon_order_main`)
+#### 1. 对账订单主表 (`easy_recon_order_main`)
 
 | 字段名 | 数据类型 | 约束 | 描述 |
 |-------|---------|------|------|
@@ -36,7 +36,7 @@
 - 联合索引：`INDEX idx_merchant_status (merchant_id, recon_status)`
 - 联合索引：`INDEX idx_time_range (order_time, pay_time)`
 
-#### 2. 对账订单分账子表 (`recon_order_split_sub`)
+#### 2. 对账订单分账子表 (`easy_recon_order_split_sub`)
 
 | 字段名 | 数据类型 | 约束 | 描述 |
 |-------|---------|------|------|
@@ -54,7 +54,7 @@
 - 联合索引：`INDEX idx_order_suborder (order_no, sub_order_no)`
 - 联合索引：`INDEX idx_merchant_status (merchant_id, status)`
 
-#### 3. 对账异常表 (`recon_exception`)
+#### 3. 对账异常表 (`easy_recon_exception`)
 
 | 字段名 | 数据类型 | 约束 | 描述 |
 |-------|---------|------|------|
@@ -75,10 +75,45 @@
 - 联合索引：`INDEX idx_exception_alarm (exception_type, alarm_status)`
 - 联合索引：`INDEX idx_create_time (create_time)`
 
+#### 4. 对账订单退款分账子表 (`easy_recon_order_refund_split_sub`)
+
+| 字段名 | 数据类型 | 约束 | 描述 |
+|-------|---------|------|------|
+| `id` | `BIGINT` | `PRIMARY KEY AUTO_INCREMENT` | 自增ID |
+| `order_no` | `VARCHAR(64)` | `NOT NULL` | 订单号 |
+| `sub_order_no` | `VARCHAR(64)` | `NOT NULL` | 子订单号 |
+| `merchant_id` | `VARCHAR(32)` | `NOT NULL` | 商户ID |
+| `refund_split_amount` | `DECIMAL(16,2)` | `NOT NULL` | 退款分账金额 |
+| `status` | `TINYINT` | `NOT NULL DEFAULT 0` | 状态 |
+| `create_time` | `DATETIME` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | 创建时间 |
+| `update_time` | `DATETIME` | `NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | 更新时间 |
+
+**索引**：
+- 主键索引：`PRIMARY KEY (id)`
+- 索引：`INDEX idx_order_no (order_no)`
+
+#### 5. 通知日志表 (`easy_recon_notify_log`)
+
+| 字段名 | 数据类型 | 约束 | 描述 |
+|-------|---------|------|------|
+| `id` | `BIGINT` | `PRIMARY KEY AUTO_INCREMENT` | 自增ID |
+| `order_no` | `VARCHAR(64)` | `NOT NULL` | 订单号 |
+| `sub_order_no` | `VARCHAR(64)` | `NULL` | 子订单号 |
+| `merchant_id` | `VARCHAR(32)` | `NOT NULL` | 商户ID |
+| `notify_url` | `VARCHAR(255)` | `NOT NULL` | 通知URL |
+| `notify_status` | `TINYINT` | `NOT NULL` | 通知状态 |
+| `notify_result` | `TEXT` | `NULL` | 通知结果 |
+| `create_time` | `DATETIME` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | 创建时间 |
+| `update_time` | `DATETIME` | `NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | 更新时间 |
+
+**索引**：
+- 主键索引：`PRIMARY KEY (id)`
+- 索引：`INDEX idx_order_no (order_no)`
+
 ### 表关系
 
-- **recon_order_main** 与 **recon_order_split_sub**：一对多关系，通过 `order_no` 关联
-- **recon_order_main** 与 **recon_exception**：一对多关系，通过 `order_no` 关联
+- **easy_recon_order_main** 与 **easy_recon_order_split_sub**：一对多关系，通过 `order_no` 关联
+- **easy_recon_order_main** 与 **easy_recon_exception**：一对多关系，通过 `order_no` 关联
 
 ## 数据库兼容性
 
@@ -121,7 +156,8 @@ SDK 使用 Flyway 进行数据库迁移，确保数据库结构的一致性和�
 -- V1__create_recon_tables.sql
 
 -- 创建对账订单主表
-CREATE TABLE IF NOT EXISTS recon_order_main (
+-- 创建对账订单主表
+CREATE TABLE IF NOT EXISTS easy_recon_order_main (
     order_no VARCHAR(64) PRIMARY KEY,
     merchant_id VARCHAR(32) NOT NULL,
     merchant_name VARCHAR(128) NOT NULL,
@@ -135,11 +171,12 @@ CREATE TABLE IF NOT EXISTS recon_order_main (
 );
 
 -- 创建索引
-CREATE INDEX idx_merchant_status ON recon_order_main(merchant_id, recon_status);
-CREATE INDEX idx_time_range ON recon_order_main(order_time, pay_time);
+CREATE INDEX idx_merchant_status ON easy_recon_order_main(merchant_id, recon_status);
+CREATE INDEX idx_time_range ON easy_recon_order_main(order_time, pay_time);
 
 -- 创建对账订单分账子表
-CREATE TABLE IF NOT EXISTS recon_order_split_sub (
+-- 创建对账订单分账子表
+CREATE TABLE IF NOT EXISTS easy_recon_order_split_sub (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_no VARCHAR(64) NOT NULL,
     sub_order_no VARCHAR(64) NOT NULL,
@@ -151,11 +188,12 @@ CREATE TABLE IF NOT EXISTS recon_order_split_sub (
 );
 
 -- 创建索引
-CREATE INDEX idx_order_suborder ON recon_order_split_sub(order_no, sub_order_no);
-CREATE INDEX idx_merchant_status ON recon_order_split_sub(merchant_id, status);
+CREATE INDEX idx_order_suborder ON easy_recon_order_split_sub(order_no, sub_order_no);
+CREATE INDEX idx_merchant_status ON easy_recon_order_split_sub(merchant_id, status);
 
 -- 创建对账异常表
-CREATE TABLE IF NOT EXISTS recon_exception (
+-- 创建对账异常表
+CREATE TABLE IF NOT EXISTS easy_recon_exception (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_no VARCHAR(64) NOT NULL,
     merchant_id VARCHAR(32) NOT NULL,
@@ -169,9 +207,9 @@ CREATE TABLE IF NOT EXISTS recon_exception (
 );
 
 -- 创建索引
-CREATE INDEX idx_order_merchant ON recon_exception(order_no, merchant_id);
-CREATE INDEX idx_exception_alarm ON recon_exception(exception_type, alarm_status);
-CREATE INDEX idx_create_time ON recon_exception(create_time);
+CREATE INDEX idx_order_merchant ON easy_recon_exception(order_no, merchant_id);
+CREATE INDEX idx_exception_alarm ON easy_recon_exception(exception_type, alarm_status);
+CREATE INDEX idx_create_time ON easy_recon_exception(create_time);
 ```
 
 ### 迁移流程

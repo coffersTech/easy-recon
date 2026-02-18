@@ -8,41 +8,22 @@
 
 ## 集成步骤
 
-### 1. 创建项目结构
+### 1. 安装 SDK
+
+使用 pip 安装 Easy Recon SDK：
 
 ```bash
-mkdir -p my-recon-app/{src/{core,repository,service,entity,dialect,util},config}
+pip install easy-recon-sdk
+```
+
+### 2. 初始化项目
+
+```bash
+mkdir -p my-recon-app/src
 cd my-recon-app
 ```
 
-### 2. 创建虚拟环境
-
-```bash
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
-```
-
-### 3. 创建依赖文件
-
-创建 `requirements.txt` 文件：
-
-```
-mysql-connector-python==8.0.30
-psycopg2-binary==2.9.9
-```
-
-### 4. 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5. 复制 SDK 代码
-
-将 Easy Recon SDK 的 Python 版本代码复制到项目中。
-
-### 6. 配置数据源
+### 3. 配置数据源
 
 创建配置文件 `config/config.py`：
 
@@ -83,8 +64,8 @@ alarm_config = AlarmConfig()
 创建初始化文件 `src/core/init.py`：
 
 ```python
-from repository.sql_recon_repository import SQLReconRepository
-from dialect.recon_database_dialect import create_dialect
+from repository.recon_repository import ReconRepository
+from core.easy_recon_factory import EasyReconFactory
 from service.alarm_service import AlarmService, LogAlarmStrategy, DingTalkAlarmStrategy
 from service.realtime_recon_service import RealtimeReconService
 from service.timing_recon_service import TimingReconService
@@ -98,11 +79,12 @@ def init_recon_service():
     # 1. 连接数据库
     connection = mysql.connector.connect(**db_config.get_connection_params())
     
-    # 2. 创建数据库方言
-    dialect = create_dialect(connection)
+    # 2. 创建 ReconConfig (如果使用 Factory)
+    # 或者手动创建
+    repo = ReconRepository(config) # 需先初始化 config
     
-    # 3. 创建存储库
-    repo = SQLReconRepository(connection, dialect)
+    # 推荐使用 Factory (假设 SDK 提供了便捷入口，参考 Demo)
+    # 这里演示手动组装，与 SDK 保持一致
     
     # 4. 创建告警服务
     if alarm_config.type == 'dingtalk' and alarm_config.dingtalk['webhook_url']:
@@ -129,8 +111,8 @@ def init_recon_service():
 
 ```python
 from core.init import init_recon_service
-from entity.recon_order_main import ReconOrderMain
-from entity.recon_order_split_sub import ReconOrderSplitSub
+from easy_recon_sdk.entity.recon_order_main import ReconOrderMain
+from easy_recon_sdk.entity.recon_order_split_sub import ReconOrderSplitSub
 from datetime import datetime, date, timedelta
 
 

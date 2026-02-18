@@ -11,40 +11,19 @@
 ### 1. 创建项目
 
 ```bash
-mkdir -p my-recon-app/{src/{core,repository,service,entity,dialect,util},config}
+mkdir my-recon-app
 cd my-recon-app
 npm init -y
 ```
 
-### 2. 添加依赖
-
-在 `package.json` 文件中添加依赖：
-
-```json
-{
-  "name": "my-recon-app",
-  "version": "1.0.0",
-  "description": "Easy Recon SDK Node.js Integration",
-  "main": "src/main.js",
-  "scripts": {
-    "start": "node src/main.js",
-    "dev": "node src/main.js"
-  },
-  "dependencies": {
-    "mysql2": "^2.3.3",
-    "pg": "^8.7.3",
-    "dotenv": "^16.0.3"
-  }
-}
-```
-
-### 3. 安装依赖
+### 2. 安装 SDK
 
 ```bash
-npm install
+npm install @cofferstech/easy-recon-sdk
+npm install mysql2 pg dotenv
 ```
 
-### 4. 配置数据源
+### 3. 配置数据源
 
 创建配置文件 `config/config.js`：
 
@@ -107,53 +86,35 @@ ALARM_TYPE=log
 DINGTALK_WEBHOOK=
 ```
 
-### 5. 初始化 SDK
+### 4. 初始化 SDK
 
-创建初始化文件 `src/core/init.js`：
+创建初始化文件 `src/init.js`：
 
 ```javascript
 const mysql = require('mysql2/promise');
-const { dbConfig, alarmConfig } = require('../../config/config');
-const SQLReconRepository = require('../repository/sql_recon_repository');
-const createDialect = require('../dialect/recon_database_dialect');
-const AlarmService = require('../service/alarm_service');
-const LogAlarmStrategy = require('../service/log_alarm_strategy');
-const DingTalkAlarmStrategy = require('../service/dingtalk_alarm_strategy');
-const RealtimeReconService = require('../service/realtime_recon_service');
-const TimingReconService = require('../service/timing_recon_service');
-const EasyReconTemplate = require('./easy_recon_template');
+const { EasyReconApi, ReconConfig } = require('@cofferstech/easy-recon-sdk');
+const { dbConfig, alarmConfig } = require('./config/config'); // 假设 config.js 保持不变
 
 async function initReconService() {
   """初始化对账服务"""
   try {
     // 1. 连接数据库
-    const pool = mysql.createPool(dbConfig.getConnectionParams());
+    const connection = await mysql.createConnection(dbConfig.getConnectionParams());
     
-    // 2. 创建数据库方言
-    const dialect = createDialect(pool);
-    
-    // 3. 创建存储库
-    const repo = new SQLReconRepository(pool, dialect);
-    
-    // 4. 创建告警服务
-    let alarmStrategy;
-    if (alarmConfig.type === 'dingtalk' && alarmConfig.dingtalk.webhookUrl) {
-      alarmStrategy = new DingTalkAlarmStrategy(alarmConfig.dingtalk.webhookUrl);
-    } else {
-      alarmStrategy = new LogAlarmStrategy();
-    }
-    
-    const alarmService = new AlarmService(alarmStrategy);
-    
-    // 5. 创建对账服务
-    const realtimeService = new RealtimeReconService(repo, alarmService);
-    const timingService = new TimingReconService(repo, alarmService);
-    
-    // 6. 创建模板
-    const template = new EasyReconTemplate(realtimeService, timingService);
+    // 2. 创建配置
+    const config = new ReconConfig({
+        enabled: true,
+        alarm: {
+            type: alarmConfig.type,
+            dingtalk: alarmConfig.dingtalk
+        }
+    });
+
+    // 3. 创建 API 实例
+    const api = new EasyReconApi(config, connection);
     
     console.log('Recon service initialized successfully');
-    return template;
+    return api;
   } catch (error) {
     console.error('Failed to initialize recon service:', error);
     throw error;
@@ -165,28 +126,25 @@ module.exports = {
 };
 ```
 
-### 6. 使用 SDK
-
-创建主文件 `src/main.js`：
+// 创建主文件 `src/main.js`：
 
 ```javascript
-const { initReconService } = require('./core/init');
-const ReconOrderMain = require('./entity/recon_order_main');
-const ReconOrderSplitSub = require('./entity/recon_order_split_sub');
+const { initReconService } = require('./init');
+const { ReconOrderMain, ReconOrderSplitSub } = require('@cofferstech/easy-recon-sdk');
 
 async function main() {
   """主函数"""
   try {
     // 1. 初始化 SDK
-    const template = await initReconService();
+    const api = await initReconService();
     
     // 2. 测试实时对账
     console.log('Testing real-time reconciliation...');
-    await testRealtimeRecon(template);
+    await testRealtimeRecon(api);
     
     // 3. 测试定时对账
     console.log('Testing timing reconciliation...');
-    await testTimingRecon(template);
+    await testTimingRecon(api);
     
     console.log('Integration test completed');
   } catch (error) {
@@ -194,38 +152,20 @@ async function main() {
   }
 }
 
-async function testRealtimeRecon(template) {
+async function testRealtimeRecon(api) {
   """测试实时对账"""
   try {
     // 创建订单主记录
-    const orderMain = new ReconOrderMain(
-      `ORDER_${Date.now()}`,
-      'MERCHANT_001',
-      '测试商户',
-      100.00,
-      100.00,
-      0, // 待对账
-      new Date(),
-      new Date(),
-      new Date(),
-      new Date()
-    );
+    // 注意：根据 SDK 版本，构造函数参数可能有所不同，请参考 entity 定义
+    const orderMain = new ReconOrderMain();
+    orderMain.orderNo = `ORDER_${Date.now()}`;
+    // ... 设置其他属性
     
-    // 创建分账子记录
-    const splitSubs = [
-      new ReconOrderSplitSub(
-        orderMain.orderNo,
-        `SUB_${Date.now()}`,
-        'MERCHANT_001',
-        80.00,
-        0, // 待处理
-        new Date(),
-        new Date()
-      )
-    ];
+    const splitSubs = [];
+    // ...
     
-    // 执行对账
-    const result = await template.doRealtimeRecon(orderMain, splitSubs);
+    // 执行对账 (API 方法名为 reconOrder)
+    const result = await api.reconOrder(orderMain, splitSubs);
     if (result) {
       console.log('Real-time recon succeeded');
     } else {
@@ -244,7 +184,7 @@ async function testTimingRecon(template) {
     yesterday.setDate(yesterday.getDate() - 1);
     const dateStr = yesterday.toISOString().split('T')[0];
     
-    const result = await template.doTimingRecon(dateStr);
+    const result = await api.runTimingRecon(dateStr);
     if (result) {
       console.log('Timing recon succeeded');
     } else {

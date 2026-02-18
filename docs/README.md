@@ -608,8 +608,7 @@ func main() {
 #### 5.3.1 安装依赖
 
 ```bash
-cd sdk/python
-pip install -r requirements.txt
+pip install easy-recon-sdk
 ```
 
 #### 5.3.2 高级配置
@@ -716,15 +715,11 @@ if __name__ == "__main__":
 
 ```python
 import mysql.connector
-from datetime import datetime
-from repository.sql_recon_repository import SQLReconRepository
-from dialect.recon_database_dialect import create_dialect
-from service.alarm_service import AlarmService, LogAlarmStrategy
-from service.realtime_recon_service import RealtimeReconService
-from service.timing_recon_service import TimingReconService
-from core.easy_recon_template import EasyReconTemplate
-from entity.recon_order_main import ReconOrderMain
-from entity.recon_order_split_sub import ReconOrderSplitSub
+from datetime import datetime, date, timedelta
+from easy_recon_sdk.core.easy_recon_factory import EasyReconFactory
+from easy_recon_sdk.config.recon_config import ReconConfig
+from easy_recon_sdk.entity.recon_order_main import ReconOrderMain
+from easy_recon_sdk.entity.recon_order_split_sub import ReconOrderSplitSub
 
 # 1. 初始化数据库连接
 connection = mysql.connector.connect(
@@ -734,57 +729,51 @@ connection = mysql.connector.connect(
     database="easy_recon"
 )
 
-# 2. 创建数据库方言
-dialect = create_dialect(connection)
+# 2. 创建配置
+config = ReconConfig()
+config.enabled = True
 
-# 3. 创建存储库
-repo = SQLReconRepository(connection, dialect)
+# 3. 使用 Factory 创建 Template
+factory = EasyReconFactory(connection, config)
+template = factory.create_template()
 
-# 4. 创建告警服务
-alarm_service = AlarmService(LogAlarmStrategy())
-
-# 5. 创建对账服务
-realtime_recon_service = RealtimeReconService(repo, alarm_service)
-timing_recon_service = TimingReconService(repo, alarm_service)
-
-# 6. 创建模板
-template = EasyReconTemplate(realtime_recon_service, timing_recon_service)
-
-# 7. 执行实时对账
-order_main = ReconOrderMain()
-order_main.order_no = f"ORDER_{datetime.now().timestamp()}"
-order_main.merchant_name = "测试商户"
-order_main.order_amount = 100.00
-order_main.actual_amount = 100.00
-order_main.recon_status = 0
-order_main.order_time = datetime.now()
-order_main.pay_time = datetime.now()
-order_main.create_time = datetime.now()
-order_main.update_time = datetime.now()
+# 4. 执行实时对账
+order_main = ReconOrderMain(
+    order_no=f"ORDER_{datetime.now().timestamp()}",
+    merchant_name="测试商户",
+    order_amount=100.00,
+    actual_amount=100.00,
+    recon_status=0,
+    order_time=datetime.now(),
+    pay_time=datetime.now(),
+    create_time=datetime.now(),
+    update_time=datetime.now()
+)
+order_main.merchant_id = "MERCHANT_001" # 补充字段
 
 # 创建分账子记录
 split_subs = []
-sub = ReconOrderSplitSub()
-sub.order_no = order_main.order_no
-sub.sub_order_no = f"SUB_{datetime.now().timestamp()}"
-sub.merchant_id = "MERCHANT_001"
-sub.split_amount = 80.00
-sub.status = 0
-sub.create_time = datetime.now()
-sub.update_time = datetime.now()
+sub = ReconOrderSplitSub(
+    order_no=order_main.order_no,
+    sub_order_no=f"SUB_{datetime.now().timestamp()}",
+    merchant_id="MERCHANT_001",
+    split_amount=80.00,
+    status=0,
+    create_time=datetime.now(),
+    update_time=datetime.now()
+)
 split_subs.append(sub)
 
 # 执行对账
 result = template.do_realtime_recon(order_main, split_subs)
 print(f"实时对账结果: {result}")
 
-# 8. 执行定时对账
-from datetime import date, timedelta
+# 5. 执行定时对账
 date_str = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
 result = template.do_timing_recon(date_str)
 print(f"定时对账结果: {result}")
 
-# 9. 关闭连接
+# 6. 关闭连接
 connection.close()
 ```
 
@@ -793,8 +782,7 @@ connection.close()
 #### 5.4.1 安装依赖
 
 ```bash
-cd sdk/node.js
-npm install
+npm install @cofferstech/easy-recon-sdk
 ```
 
 #### 5.4.2 高级配置
@@ -924,14 +912,7 @@ batchProcessOrders().catch(console.error);
 
 ```javascript
 const mysql = require('mysql2/promise');
-const SQLReconRepository = require('./repository/SQLReconRepository');
-const { createDialect } = require('./dialect/ReconDatabaseDialect');
-const { AlarmService, LogAlarmStrategy } = require('./service/AlarmService');
-const RealtimeReconService = require('./service/RealtimeReconService');
-const TimingReconService = require('./service/TimingReconService');
-const EasyReconTemplate = require('./core/EasyReconTemplate');
-const ReconOrderMain = require('./entity/ReconOrderMain');
-const ReconOrderSplitSub = require('./entity/ReconOrderSplitSub');
+const { EasyReconApi, ReconConfig, ReconOrderMain, ReconOrderSplitSub } = require('@cofferstech/easy-recon-sdk');
 
 async function main() {
     // 1. 初始化数据库连接
@@ -942,23 +923,11 @@ async function main() {
         database: 'easy_recon'
     });
 
-    // 2. 创建数据库方言
-    const dialect = createDialect(connection);
+    // 2. 初始化 API
+    const config = { enabled: true };
+    const api = new EasyReconApi(config, connection);
 
-    // 3. 创建存储库
-    const repo = new SQLReconRepository(connection, dialect);
-
-    // 4. 创建告警服务
-    const alarmService = new AlarmService(new LogAlarmStrategy());
-
-    // 5. 创建对账服务
-    const realtimeReconService = new RealtimeReconService(repo, alarmService);
-    const timingReconService = new TimingReconService(repo, alarmService);
-
-    // 6. 创建模板
-    const template = new EasyReconTemplate(realtimeReconService, timingReconService);
-
-    // 7. 执行实时对账
+    // 3. 执行实时对账
     const orderMain = new ReconOrderMain();
     orderMain.orderNo = `ORDER_${Date.now()}`;
     orderMain.merchantId = 'MERCHANT_001';
@@ -983,18 +952,18 @@ async function main() {
     sub.updateTime = new Date();
     splitSubs.push(sub);
 
-    // 执行对账
-    const result1 = await template.doRealtimeRecon(orderMain, splitSubs);
+    // 执行对账 (reconOrder)
+    const result1 = await api.reconOrder(orderMain, splitSubs);
     console.log(`实时对账结果: ${result1}`);
 
-    // 8. 执行定时对账
+    // 4. 执行定时对账
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const dateStr = yesterday.toISOString().split('T')[0];
-    const result2 = await template.doTimingRecon(dateStr);
+    const result2 = await api.runTimingRecon(dateStr);
     console.log(`定时对账结果: ${result2}`);
 
-    // 9. 关闭连接
+    // 5. 关闭连接
     await connection.end();
 }
 

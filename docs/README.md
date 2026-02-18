@@ -174,6 +174,28 @@ Easy Recon SDK 采用分层架构设计，各层职责明确，便于扩展和�
 - Java 版本：使用 Jasypt 进行配置加密
 - 其他版本：实现相应的加密和安全机制
 
+### 3.8 退款对账 (New)
+
+**功能说明**：处理退款业务的对账逻辑，支持部分退款和全额退款。
+
+**实现原理**：
+1. 记录退款订单和退款分账明细
+2. 核对原始支付订单的分账情况
+3. 更新分账子记录状态
+
+### 3.9 通知回调处理 (New)
+
+**功能说明**：处理来自支付渠道或分账系统的异步通知，自动更新对账状态。
+
+**支持场景**：
+- 支付成功通知
+- 分账成功/失败通知
+- 退款结果通知
+
+### 3.10 数据查询与统计 (New)
+
+**功能说明**：提供丰富的 API 查询对账状态、异常记录和每日汇总统计，便于构建管理后台。
+
 ## 4. 数据库表结构
 
 ### 4.1 recon_order_main（对账订单主记录）
@@ -1034,6 +1056,33 @@ Node.js SDK 使用代码配置方式，主要配置项包括：
 | getOrderSplitSubByOrderNo(String) | orderNo: 订单号 | List<ReconOrderSplitSubDO>: 分账子记录列表 | 根据订单号查询分账子记录 |
 | getPendingReconOrders(String, int, int) | dateStr: 日期<br>offset: 偏移量<br>limit: 限制数量 | List<ReconOrderMainDO>: 待核账订单列表 | 查询指定日期的待核账订单（分页） |
 | updateReconStatus(String, int) | orderNo: 订单号<br>reconStatus: 对账状态 | boolean: 更新结果 | 更新对账状态 |
+
+#### 7.1.2 扩展功能 API (EasyReconApi)
+
+**退款对账**：
+
+| 方法名 | 描述 |
+|--------|------|
+| reconRefund(...) | 执行退款对账 |
+| reconRefundAsync(...) | 异步执行退款对账 |
+| reconRefundBySub(...) | 基于子订单号的退款对账 |
+
+**通知回调**：
+
+| 方法名 | 描述 |
+|--------|------|
+| reconNotify(...) | 处理通用通知回调 |
+| reconNotifyBySub(...) | 基于子订单号处理通知 |
+| reconNotifyAsync(...) | 异步处理通知 |
+
+**查询与统计**：
+
+| 方法名 | 描述 |
+|--------|------|
+| getReconStatus(String) | 查询订单对账状态 |
+| getReconSummary(String) | 查询某日对账统计 (总数/成功/失败/金额) |
+| listExceptions(...) | 分页查询异常记录 |
+| listOrdersByDate(...) | 分页查询每日订单 |
 
 ### 7.2 Go SDK API
 

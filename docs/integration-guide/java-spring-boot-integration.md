@@ -89,11 +89,11 @@ public class Application {
 
 ### 4. 使用 SDK
 
-#### 4.1 注入 EasyReconTemplate
+#### 4.1 注入 EasyReconApi
 
 ```java
 @Autowired
-private EasyReconTemplate easyReconTemplate;
+private EasyReconApi easyReconApi;
 ```
 
 #### 4.2 执行实时对账
@@ -125,7 +125,7 @@ public boolean doRealtimeRecon() {
     splitSubs.add(sub1);
 
     // 执行对账
-    return easyReconTemplate.doRealtimeRecon(orderMain, splitSubs);
+    return easyReconApi.doRealtimeRecon(orderMain, splitSubs);
 }
 ```
 
@@ -134,7 +134,7 @@ public boolean doRealtimeRecon() {
 ```java
 public boolean doTimingRecon() {
     String dateStr = LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    return easyReconTemplate.doTimingRecon(dateStr);
+    return easyReconApi.doTimingRecon(dateStr);
 }
 ```
 
@@ -145,7 +145,7 @@ public CompletableFuture<Boolean> doReconAsync() {
     // 创建订单主记录和分账子记录（代码省略）
     
     // 异步执行对账
-    return easyReconTemplate.doRealtimeReconAsync(orderMain, splitSubs);
+    return easyReconApi.doRealtimeReconAsync(orderMain, splitSubs);
 }
 
 // 处理异步结果

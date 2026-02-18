@@ -349,7 +349,7 @@ public class Application {
 
 ```java
 @Autowired
-private EasyReconTemplate easyReconTemplate;
+private EasyReconApi easyReconApi;
 
 // 异步执行实时对账
 public CompletableFuture<Boolean> doReconAsync() {
@@ -378,7 +378,7 @@ public CompletableFuture<Boolean> doReconAsync() {
     splitSubs.add(sub1);
 
     // 异步执行对账
-    return easyReconTemplate.doRealtimeReconAsync(orderMain, splitSubs);
+    return easyReconApi.doRealtimeReconAsync(orderMain, splitSubs);
 }
 
 // 处理异步结果
@@ -400,7 +400,7 @@ public void handleAsyncResult() {
 
 ```java
 @Autowired
-private EasyReconTemplate easyReconTemplate;
+private EasyReconApi easyReconApi;
 
 // 执行实时对账
 public boolean doRecon() {
@@ -429,13 +429,13 @@ public boolean doRecon() {
     splitSubs.add(sub1);
 
     // 执行对账
-    return easyReconTemplate.doRealtimeRecon(orderMain, splitSubs);
+    return easyReconApi.doRealtimeRecon(orderMain, splitSubs);
 }
 
 // 执行定时对账
 public boolean doTimingRecon() {
     String dateStr = LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    return easyReconTemplate.doTimingRecon(dateStr);
+    return easyReconApi.doTimingRecon(dateStr);
 }
 ```
 
@@ -1014,7 +1014,7 @@ Node.js SDK 使用代码配置方式，主要配置项包括：
 
 ### 7.1 Java Spring Boot Starter API
 
-#### 7.1.1 EasyReconTemplate
+#### 7.1.1 EasyReconApi
 
 | 方法名 | 参数 | 返回值 | 描述 |
 |--------|------|--------|------|

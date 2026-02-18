@@ -163,6 +163,61 @@ public void handleAsyncResult() {
 }
 ```
 
+#### 4.5 退款对账 (New)
+
+```java
+public void processRefund(String orderNo, BigDecimal refundAmount) {
+    // 1. 构建退款请求
+    LocalDateTime refundTime = LocalDateTime.now();
+    RefundStatusEnum status = RefundStatusEnum.SUCCESS;
+    
+    // 2. 构建退款分账明细 (可选，如果涉及分账退回)
+    List<ReconOrderRefundSplitSubDO> splitDetails = new ArrayList<>();
+    // ... 添加明细
+    
+    // 3. 执行退款对账
+    ReconResult result = easyReconApi.reconRefund(orderNo, refundAmount, refundTime, status, splitDetails);
+    
+    if (result.isSuccess()) {
+        log.info("退款对账成功");
+    } else {
+        log.error("退款对账失败: {}", result.getMessage());
+    }
+}
+```
+
+#### 4.6 通知回调处理 (New)
+
+```java
+@PostMapping("/pay/notify")
+public String handlePayNotify(@RequestBody PayNotifyDTO notify) {
+    // 1. 解析通知内容
+    String orderNo = notify.getOrderNo();
+    NotifyStatusEnum status = notify.isSuccess() ? NotifyStatusEnum.SUCCESS : NotifyStatusEnum.FAILURE;
+    
+    // 2. 调用 SDK 处理通知
+    // merchantId传入 SELF 表示主订单通知，传入具体商户ID表示子订单通知
+    ReconResult result = easyReconApi.reconNotify(orderNo, "SELF", "http://notify.url", status, JSON.toJSONString(notify));
+    
+    return "success";
+}
+```
+
+#### 4.7 数据查询 (New)
+
+```java
+public void queryReconData(String orderNo) {
+    // 查询对账状态
+    ReconStatusEnum status = easyReconApi.getReconStatus(orderNo);
+    
+    // 查询主订单详情
+    ReconOrderMainDO orderMain = easyReconApi.getOrderMain(orderNo);
+    
+    // 查询异常记录
+    List<ReconExceptionDO> exceptions = easyReconApi.getReconExceptions(orderNo);
+}
+```
+
 ### 5. 配置告警
 
 #### 5.1 使用日志告警

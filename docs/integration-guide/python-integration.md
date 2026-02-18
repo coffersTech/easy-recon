@@ -64,12 +64,9 @@ alarm_config = AlarmConfig()
 创建初始化文件 `src/core/init.py`：
 
 ```python
-from repository.recon_repository import ReconRepository
-from core.easy_recon_factory import EasyReconFactory
-from service.alarm_service import AlarmService, LogAlarmStrategy, DingTalkAlarmStrategy
-from service.realtime_recon_service import RealtimeReconService
-from service.timing_recon_service import TimingReconService
-from core.easy_recon_template import EasyReconTemplate
+from easy_recon_sdk.repository.recon_repository import ReconRepository
+from easy_recon_sdk.core.easy_recon_factory import EasyReconFactory
+from easy_recon_sdk.config.recon_config import ReconConfig
 import mysql.connector
 from config import db_config, alarm_config
 
@@ -79,27 +76,13 @@ def init_recon_service():
     # 1. 连接数据库
     connection = mysql.connector.connect(**db_config.get_connection_params())
     
-    # 2. 创建 ReconConfig (如果使用 Factory)
-    # 或者手动创建
-    repo = ReconRepository(config) # 需先初始化 config
+    # 2. 创建配置
+    sdk_config = ReconConfig()
+    # sdk_config.enabled = True # 可选
     
-    # 推荐使用 Factory (假设 SDK 提供了便捷入口，参考 Demo)
-    # 这里演示手动组装，与 SDK 保持一致
-    
-    # 4. 创建告警服务
-    if alarm_config.type == 'dingtalk' and alarm_config.dingtalk['webhook_url']:
-        alarm_strategy = DingTalkAlarmStrategy(alarm_config.dingtalk['webhook_url'])
-    else:
-        alarm_strategy = LogAlarmStrategy()
-    
-    alarm_service = AlarmService(alarm_strategy)
-    
-    # 5. 创建对账服务
-    realtime_service = RealtimeReconService(repo, alarm_service)
-    timing_service = TimingReconService(repo, alarm_service)
-    
-    # 6. 创建模板
-    template = EasyReconTemplate(realtime_service, timing_service)
+    # 3. 使用 Factory 创建 Template
+    factory = EasyReconFactory(connection, sdk_config)
+    template = factory.create_template()
     
     print("Recon service initialized successfully")
     return template

@@ -17,7 +17,7 @@
 <dependency>
     <groupId>tech.coffers</groupId>
     <artifactId>easy-recon-sdk</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 
 <!-- 数据库驱动依赖 -->
@@ -57,7 +57,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
-eas-recon:
+easy-recon:
   enabled: true
   amount-tolerance: 0.01
   batch-size: 1000

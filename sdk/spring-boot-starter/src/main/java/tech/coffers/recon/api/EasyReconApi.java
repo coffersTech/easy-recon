@@ -1,25 +1,19 @@
 package tech.coffers.recon.api;
 
-import tech.coffers.recon.api.result.PageResult;
-import tech.coffers.recon.api.result.ReconResult;
-import tech.coffers.recon.api.enums.PayStatusEnum;
-import tech.coffers.recon.api.enums.SplitStatusEnum;
-import tech.coffers.recon.api.enums.NotifyStatusEnum;
-import tech.coffers.recon.api.enums.RefundStatusEnum;
+import tech.coffers.recon.api.result.*;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
+import tech.coffers.recon.api.model.AbstractReconOrderRequest;
+import tech.coffers.recon.api.model.AbstractReconRefundRequest;
+import tech.coffers.recon.api.model.ReconNotifyRequest;
 import tech.coffers.recon.core.service.RealtimeReconService;
 import tech.coffers.recon.core.service.TimingReconService;
-import tech.coffers.recon.entity.ReconExceptionDO;
-import tech.coffers.recon.entity.ReconOrderMainDO;
-import tech.coffers.recon.entity.ReconOrderSplitSubDO;
-import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
-import tech.coffers.recon.entity.ReconSummaryDO;
+import tech.coffers.recon.entity.*;
 import tech.coffers.recon.repository.ReconRepository;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Easy Recon API
@@ -47,453 +41,278 @@ public class EasyReconApi {
     // ==================== 实时对账 ====================
 
     /**
-     * 对账订单
+     * 对账订单 (DTO)
      *
-     * @param orderNo        订单号
-     * @param payAmount      支付金额
-     * @param platformIncome 平台收入
-     * @param payFee         支付手续费
-     * @param splitDetails   分账详情
-     * @param payStatus      支付状态
-     * @param splitStatus    分账状态
-     * @param notifyStatus   通知状态
+     * @param request 对账请求
      * @return 对账结果
      */
-    public ReconResult reconOrder(String orderNo, BigDecimal payAmount, BigDecimal platformIncome,
-            BigDecimal payFee, List<ReconOrderSplitSubDO> splitDetails, PayStatusEnum payStatus,
-            SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
-        return realtimeReconService.reconOrder(orderNo, payAmount, platformIncome, payFee, splitDetails,
-                payStatus, splitStatus, notifyStatus);
+    public ReconResult reconOrder(AbstractReconOrderRequest request) {
+        return realtimeReconService.reconOrder(request);
     }
 
     /**
-     * 异步对账订单
+     * 异步对账订单 (DTO)
      *
-     * @param orderNo        订单号
-     * @param payAmount      支付金额
-     * @param platformIncome 平台收入
-     * @param payFee         支付手续费
-     * @param splitDetails   分账详情
-     * @param payStatus      支付状态
-     * @param splitStatus    分账状态
-     * @param notifyStatus   通知状态
-     * @return 对账结果
+     * @param request 对账请求
+     * @return 对账结果异步句柄
      */
-    public CompletableFuture<ReconResult> reconOrderAsync(String orderNo, BigDecimal payAmount,
-            BigDecimal platformIncome,
-            BigDecimal payFee, List<ReconOrderSplitSubDO> splitDetails, PayStatusEnum payStatus,
-            SplitStatusEnum splitStatus, NotifyStatusEnum notifyStatus) {
-        return realtimeReconService.reconOrderAsync(orderNo, payAmount, platformIncome, payFee, splitDetails,
-                payStatus, splitStatus, notifyStatus);
+    public CompletableFuture<ReconResult> reconOrderAsync(AbstractReconOrderRequest request) {
+        return realtimeReconService.reconOrderAsync(request);
     }
 
     /**
-     * 对账通知回调处理
-     * <p>
-     * 当外部业务系统（如分账系统）处理完通知后，回传结果给对账 SDK 进行状态更新。
-     *
-     * @param orderNo      业务主订单号
-     * @param merchantId   触发通知的商户号 (SELF 代表主订单，其他代表子订单商户)
-     * @param notifyUrl    接收通知的地址
-     * @param notifyStatus 通知后的最终状态 (SUCCESS/FAILURE)
-     * @param notifyResult 通知返回的原始报文（用于日志留痕）
-     * @return 更新后的对账结果
+     * 异步处理对账通知回调 (DTO)
      */
-    public ReconResult reconNotify(String orderNo, String merchantId, String notifyUrl,
-            NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotify(orderNo, merchantId, notifyUrl, notifyStatus, notifyResult);
+    public CompletableFuture<ReconResult> reconNotifyAsync(ReconNotifyRequest request) {
+        return realtimeReconService.reconNotifyAsync(request);
     }
 
-    /**
-     * 简化版对账通知回调处理 (基于子订单识别)
-     * <p>
-     * 当无法直接获取 orderNo 时，可以通过商户号和子订单号识别主订单及对应条目。
-     *
-     * @param merchantId   商户号
-     * @param subOrderNo   子订单号
-     * @param notifyUrl    通知地址
-     * @param notifyStatus 通知结果状态
-     * @param notifyResult 通知返回原始结果
-     * @return 对账处理结果
-     */
-    public ReconResult reconNotifyBySub(String merchantId, String subOrderNo, String notifyUrl,
-            NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotifyBySub(merchantId, subOrderNo, notifyUrl, notifyStatus, notifyResult);
+    public boolean doRealtimeRecon(ReconOrderMainDO orderMainDO, List<ReconOrderSubDO> orderSubDOs,
+            List<ReconOrderSplitDetailDO> splitDetailDOs) {
+        return realtimeReconService.doRealtimeRecon(orderMainDO, orderSubDOs, splitDetailDOs);
     }
 
-    /**
-     * 对账通知回调处理 (带子订单号)
-     *
-     * @param orderNo      业务主订单号
-     * @param merchantId   商户号
-     * @param subOrderNo   子订单号
-     * @param notifyUrl    通知地址
-     * @param notifyStatus 通知结果状态
-     * @param notifyResult 通知返回原始结果
-     * @return 对账处理结果
-     */
-    public ReconResult reconNotify(String orderNo, String merchantId, String subOrderNo, String notifyUrl,
-            NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotify(orderNo, merchantId, subOrderNo, null, notifyUrl, notifyStatus,
-                notifyResult);
-    }
-
-    /**
-     * 对账通知回调处理 (基于商户原始订单号识别)
-     *
-     * @param merchantId      商户号
-     * @param merchantOrderNo 商户原始订单号
-     * @param notifyUrl       通知地址
-     * @param notifyStatus    通知结果状态
-     * @param notifyResult    通知返回原始结果
-     * @return 对账处理结果
-     */
-    public ReconResult reconNotifyByMerchantOrder(String merchantId, String merchantOrderNo, String notifyUrl,
-            NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotifyByMerchantOrder(merchantId, merchantOrderNo, notifyUrl, notifyStatus,
-                notifyResult);
-    }
-
-    /**
-     * 异步处理对账通知回调
-     *
-     * @param orderNo      订单号
-     * @param merchantId   商户号
-     * @param notifyUrl    通知地址
-     * @param notifyStatus 通知状态
-     * @param notifyResult 通知返回结果
-     * @return 对账结果
-     * @see #reconNotify(String, String, String, NotifyStatusEnum, String)
-     */
-    public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String notifyUrl,
-            NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotifyAsync(orderNo, merchantId, notifyUrl, notifyStatus, notifyResult);
-    }
-
-    /**
-     * 异步简化版对账通知回调处理 (基于子订单识别)
-     *
-     * @param merchantId   商户ID
-     * @param subOrderNo   子订单号
-     * @param notifyUrl    通知地址
-     * @param notifyStatus 通知状态
-     * @param notifyResult 通知返回结果
-     * @return 异步对账结果
-     * @see #reconNotifyBySub(String, String, String, NotifyStatusEnum, String)
-     */
-    public CompletableFuture<ReconResult> reconNotifyBySubAsync(String merchantId, String subOrderNo,
-            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotifyBySubAsync(merchantId, subOrderNo, notifyUrl, notifyStatus,
-                notifyResult);
-    }
-
-    /**
-     * 异步对账通知回调处理 (带子订单号)
-     *
-     * @param orderNo      订单号
-     * @param merchantId   商户ID
-     * @param subOrderNo   子订单号
-     * @param notifyUrl    通知地址
-     * @param notifyStatus 通知状态
-     * @param notifyResult 通知返回结果
-     * @return 异步对账结果
-     * @see #reconNotify(String, String, String, String, NotifyStatusEnum, String)
-     */
-    public CompletableFuture<ReconResult> reconNotifyAsync(String orderNo, String merchantId, String subOrderNo,
-            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotifyAsync(orderNo, merchantId, subOrderNo, notifyUrl, notifyStatus,
-                notifyResult);
-    }
-
-    /**
-     * 异步对账通知回调处理 (基于商户原始订单号识别)
-     */
-    public CompletableFuture<ReconResult> reconNotifyByMerchantOrderAsync(String merchantId, String merchantOrderNo,
-            String notifyUrl, NotifyStatusEnum notifyStatus, String notifyResult) {
-        return realtimeReconService.reconNotifyByMerchantOrderAsync(merchantId, merchantOrderNo, notifyUrl,
-                notifyStatus,
-                notifyResult);
-    }
-
-    /**
-     * 执行实时对账
-     * <p>
-     * 内部方法，用于根据订单主记录和分账子记录执行对账逻辑。
-     *
-     * @param orderMainDO 订单主记录
-     * @param splitSubDOs 分账子记录列表
-     * @return 对账结果 (true: 成功, false: 失败)
-     */
-    public boolean doRealtimeRecon(ReconOrderMainDO orderMainDO, List<ReconOrderSplitSubDO> splitSubDOs) {
-        return realtimeReconService.doRealtimeRecon(orderMainDO, splitSubDOs);
-    }
-
-    /**
-     * 异步执行实时对账
-     *
-     * @param orderMainDO 订单主记录
-     * @param splitSubDOs 分账子记录列表
-     * @return 异步对账结果
-     */
     public CompletableFuture<Boolean> doRealtimeReconAsync(ReconOrderMainDO orderMainDO,
-            List<ReconOrderSplitSubDO> splitSubDOs) {
-        return realtimeReconService.doRealtimeReconAsync(orderMainDO, splitSubDOs);
+            List<ReconOrderSubDO> orderSubDOs,
+            List<ReconOrderSplitDetailDO> splitDetailDOs) {
+        return realtimeReconService.doRealtimeReconAsync(orderMainDO, orderSubDOs, splitDetailDOs);
     }
 
     // ==================== 退款对账 ====================
 
     /**
-     * 执行退款对账
+     * 执行退款对账 (DTO)
      *
-     * @param orderNo      订单号
-     * @param refundAmount 退款金额
-     * @param refundTime   退款时间
-     * @param refundStatus 退款状态
-     * @param splitDetails 退款分账详情
-     * @return 对账结果 (true: 成功, false: 失败)
-     */
-    public ReconResult reconRefund(String orderNo, BigDecimal refundAmount, LocalDateTime refundTime,
-            RefundStatusEnum refundStatus, List<ReconOrderRefundSplitSubDO> splitDetails) {
-        return realtimeReconService.reconRefund(orderNo, refundAmount,
-                refundTime, refundStatus, splitDetails);
-    }
-
-    /**
-     * 异步执行退款对账
-     *
-     * @param orderNo      订单号
-     * @param refundAmount 退款金额
-     * @param refundTime   退款时间
-     * @param refundStatus 退款状态
-     * @param splitDetails 退款分账详情
-     * @return 异步对账结果
-     */
-    public CompletableFuture<ReconResult> reconRefundAsync(String orderNo, BigDecimal refundAmount,
-            LocalDateTime refundTime, RefundStatusEnum refundStatus,
-            List<ReconOrderRefundSplitSubDO> splitDetails) {
-        return realtimeReconService
-                .reconRefundAsync(orderNo, refundAmount, refundTime, refundStatus, splitDetails);
-    }
-
-    /**
-     * 执行退款对账 (基于子订单识别 - 简化版)
-     * <p>
-     * 适用于单商户/单账期直接针对某个子订单进行退款。
-     *
-     * @param merchantId   商户号
-     * @param subOrderNo   子订单号
-     * @param refundAmount 退款金额
-     * @param refundTime   退款时间
-     * @param refundStatus 退款状态
+     * @param request 退款请求
      * @return 对账结果
      */
-    public ReconResult reconRefundBySub(String merchantId, String subOrderNo, BigDecimal refundAmount,
-            LocalDateTime refundTime, RefundStatusEnum refundStatus) {
-        return realtimeReconService.reconRefundBySub(merchantId, subOrderNo, refundAmount, refundTime, refundStatus);
+    public ReconResult reconRefund(AbstractReconRefundRequest request) {
+        return realtimeReconService.reconRefund(request);
     }
 
     /**
-     * 执行退款对账 (基于子订单识别 - 复杂版)
-     * <p>
-     * 适用于根据某个子订单识别主订单，但退款涉及多个子订单分账的情况。
-     *
-     * @param merchantId   商户号
-     * @param subOrderNo   子订单号
-     * @param refundAmount 退款总金额
-     * @param refundTime   退款时间
-     * @param refundStatus 退款状态
-     * @param splitDetails 退款分账详情
-     * @return 对账结果
+     * 异步执行退款对账 (DTO)
      */
-    public ReconResult reconRefundBySub(String merchantId, String subOrderNo, BigDecimal refundAmount,
-            LocalDateTime refundTime, RefundStatusEnum refundStatus, List<ReconOrderRefundSplitSubDO> splitDetails) {
-        return realtimeReconService.reconRefundBySub(merchantId, subOrderNo, refundAmount, refundTime, refundStatus,
-                splitDetails);
-    }
-
-    /**
-     * 执行退款对账 (基于商户原始订单号识别)
-     *
-     * @param merchantId      商户号
-     * @param merchantOrderNo 商户原始订单号
-     * @param refundAmount    退款金额
-     * @param refundTime      退款时间
-     * @param refundStatus    退款状态
-     * @return 对账结果
-     */
-    public ReconResult reconRefundByMerchantOrder(String merchantId, String merchantOrderNo, BigDecimal refundAmount,
-            LocalDateTime refundTime, RefundStatusEnum refundStatus) {
-        return realtimeReconService.reconRefundByMerchantOrder(merchantId, merchantOrderNo, refundAmount, refundTime,
-                refundStatus);
-    }
-
-    /**
-     * 异步执行退款对账 (基于子订单识别 - 简化版)
-     */
-    public CompletableFuture<ReconResult> reconRefundBySubAsync(String merchantId, String subOrderNo,
-            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus) {
-        return realtimeReconService.reconRefundBySubAsync(merchantId, subOrderNo, refundAmount, refundTime,
-                refundStatus);
-    }
-
-    /**
-     * 异步执行退款对账 (基于子订单识别 - 复杂版)
-     *
-     * @param merchantId   商户号
-     * @param subOrderNo   子订单号
-     * @param refundAmount 退款金额
-     * @param refundTime   退款时间
-     * @param refundStatus 退款状态
-     * @param splitDetails 退款分账详情
-     * @return 异步对账结果
-     */
-    public CompletableFuture<ReconResult> reconRefundBySubAsync(String merchantId, String subOrderNo,
-            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus,
-            List<ReconOrderRefundSplitSubDO> splitDetails) {
-        return realtimeReconService.reconRefundBySubAsync(merchantId, subOrderNo, refundAmount, refundTime,
-                refundStatus,
-                splitDetails);
-    }
-
-    /**
-     * 异步执行退款对账 (基于商户原始订单号识别)
-     */
-    public CompletableFuture<ReconResult> reconRefundByMerchantOrderAsync(String merchantId, String merchantOrderNo,
-            BigDecimal refundAmount, LocalDateTime refundTime, RefundStatusEnum refundStatus) {
-        return realtimeReconService.reconRefundByMerchantOrderAsync(merchantId, merchantOrderNo, refundAmount,
-                refundTime, refundStatus);
+    public CompletableFuture<ReconResult> reconRefundAsync(AbstractReconRefundRequest request) {
+        return realtimeReconService.reconRefundAsync(request);
     }
 
     // ==================== 定时对账触发 ====================
 
-    /**
-     * 执行定时对账
-     *
-     * @param dateStr 对账日期（yyyy-MM-dd）
-     * @return 对账结果
-     */
     public boolean doTimingRecon(String dateStr) {
         return timingReconService.doTimingRecon(dateStr);
     }
 
-    /**
-     * 执行定时退款对账
-     *
-     * @param dateStr 对账日期（yyyy-MM-dd）
-     * @return 对账结果
-     */
     public boolean doTimingRefundRecon(String dateStr) {
         return timingReconService.doTimingRefundRecon(dateStr);
     }
 
     // ==================== 查询能力 ====================
 
-    /**
-     * 查询对账状态
-     *
-     * @param orderNo 订单号
-     * @return 对账状态 (可能为 null)
-     */
     public ReconStatusEnum getReconStatus(String orderNo) {
         Integer code = reconRepository.getReconStatus(orderNo);
         return ReconStatusEnum.fromCode(code);
     }
 
-    /**
-     * 查询订单主记录
-     *
-     * @param orderNo 订单号
-     * @return 订单主记录
-     */
-    public ReconOrderMainDO getOrderMain(String orderNo) {
-        return reconRepository.getOrderMainByOrderNo(orderNo);
+    public ReconOrderMainResult getOrderMain(String orderNo) {
+        ReconOrderMainDO orderMainDO = reconRepository.getOrderMainByOrderNo(orderNo);
+        return mapToOrderMainResult(orderMainDO);
     }
 
-    /**
-     * 查询对账异常历史
-     *
-     * @param orderNo 订单号
-     * @return 异常记录列表
-     */
-    public List<ReconExceptionDO> getReconExceptions(String orderNo) {
-        return reconRepository.getExceptionsByOrderNo(orderNo);
+    public List<ReconExceptionResult> getReconExceptions(String orderNo) {
+        List<ReconExceptionDO> exceptions = reconRepository.getExceptionsByOrderNo(orderNo);
+        if (exceptions == null) {
+            return Collections.emptyList();
+        }
+        return exceptions.stream().map(this::mapToExceptionResult).collect(Collectors.toList());
     }
 
-    /**
-     * 查询对账统计数据
-     *
-     * @param dateStr 日期 (yyyy-MM-dd)
-     * @return 统计数据
-     */
-    public ReconSummaryDO getReconSummary(String dateStr) {
-        return reconRepository.getReconSummary(dateStr);
+    public ReconSummaryResult getReconSummary(String dateStr) {
+        ReconSummaryDO summaryDO = reconRepository.getReconSummary(dateStr);
+        return mapToSummaryResult(summaryDO);
     }
 
-    /**
-     * 查询分账明细
-     *
-     * @param orderNo 订单号
-     * @return 分账明细列表
-     */
-    public List<ReconOrderSplitSubDO> getSplitDetails(String orderNo) {
-        return reconRepository.getOrderSplitSubByOrderNo(orderNo);
+    public List<ReconOrderSplitDetailResult> getSplitDetails(String orderNo) {
+        List<ReconOrderSplitDetailDO> details = reconRepository.getOrderSplitDetailByOrderNo(orderNo);
+        if (details == null) {
+            return Collections.emptyList();
+        }
+        return details.stream().map(this::mapToSplitDetailResult).collect(Collectors.toList());
     }
 
-    /**
-     * 查询退款分账明细
-     *
-     * @param orderNo 订单号
-     * @return 退款分账明细列表
-     */
-    public List<ReconOrderRefundSplitSubDO> getRefundSplitDetails(String orderNo) {
-        return reconRepository.getOrderRefundSplitSubByOrderNo(orderNo);
+    public List<ReconOrderSubResult> getOrderSubs(String orderNo) {
+        List<ReconOrderSubDO> subs = reconRepository.getOrderSubByOrderNo(orderNo);
+        if (subs == null) {
+            return Collections.emptyList();
+        }
+        return subs.stream().map(this::mapToOrderSubResult).collect(Collectors.toList());
     }
 
-    /**
-     * 查询通知日志
-     *
-     * @param orderNo 订单号
-     * @return 通知日志列表
-     */
-    public List<tech.coffers.recon.entity.ReconNotifyLogDO> getNotifyLogs(String orderNo) {
-        return reconRepository.getNotifyLogsByOrderNo(orderNo);
+    public List<ReconOrderRefundDetailResult> getRefundSplitDetails(String orderNo) {
+        List<ReconOrderRefundDetailDO> details = reconRepository.getOrderRefundDetailByOrderNo(orderNo);
+        if (details == null) {
+            return Collections.emptyList();
+        }
+        return details.stream().map(this::mapToRefundDetailResult).collect(Collectors.toList());
     }
 
-    /**
-     * 分页查询日期对账订单
-     *
-     * @param dateStr     日期 (yyyy-MM-dd)
-     * @param reconStatus 对账状态
-     * @param page        页码 (1-based)
-     * @param size        每页大小
-     * @return 分页结果
-     */
-    public PageResult<ReconOrderMainDO> listOrdersByDate(String dateStr, ReconStatusEnum reconStatus, int page,
+    public List<ReconNotifyLogResult> getNotifyLogs(String orderNo) {
+        List<ReconNotifyLogDO> logs = reconRepository.getNotifyLogsByOrderNo(orderNo);
+        if (logs == null) {
+            return Collections.emptyList();
+        }
+        return logs.stream().map(this::mapToNotifyLogResult).collect(Collectors.toList());
+    }
+
+    public PageResult<ReconOrderMainResult> listOrdersByDate(String dateStr, ReconStatusEnum reconStatus, int page,
             int size) {
         int offset = (page - 1) * size;
         List<ReconOrderMainDO> list = reconRepository.getOrderMainByDate(dateStr, reconStatus, offset, size);
         long total = reconRepository.countOrderMainByDate(dateStr, reconStatus);
-        return PageResult.of(list, total, page, size);
+
+        List<ReconOrderMainResult> resultList = list.stream()
+                .map(this::mapToOrderMainResult)
+                .collect(Collectors.toList());
+
+        return PageResult.of(resultList, total, page, size);
     }
 
-    /**
-     * 分页查询异常记录
-     *
-     * @param merchantId    商户ID
-     * @param startDate     开始日期
-     * @param endDate       结束日期
-     * @param exceptionStep 异常步骤
-     * @param page          页码 (1-based)
-     * @param size          每页大小
-     * @return 分页结果
-     */
-    public PageResult<ReconExceptionDO> listExceptions(String merchantId, String startDate, String endDate,
+    public PageResult<ReconExceptionResult> listExceptions(String merchantId, String startDate, String endDate,
             Integer exceptionStep, int page, int size) {
         int offset = (page - 1) * size;
         List<ReconExceptionDO> list = reconRepository.getExceptionRecords(merchantId, startDate, endDate, exceptionStep,
                 offset, size);
         long total = reconRepository.countExceptionRecords(merchantId, startDate, endDate, exceptionStep);
-        return PageResult.of(list, total, page, size);
+
+        List<ReconExceptionResult> resultList = list.stream()
+                .map(this::mapToExceptionResult)
+                .collect(Collectors.toList());
+
+        return PageResult.of(resultList, total, page, size);
+    }
+
+    // ==================== 私有映射逻辑 ====================
+
+    private ReconOrderMainResult mapToOrderMainResult(ReconOrderMainDO doObj) {
+        if (doObj == null)
+            return null;
+        ReconOrderMainResult res = new ReconOrderMainResult();
+        res.setOrderNo(doObj.getOrderNo());
+        res.setPayAmount(doObj.getPayAmount());
+        res.setPlatformIncome(doObj.getPlatformIncome());
+        res.setPayFee(doObj.getPayFee());
+        res.setSplitTotalAmount(doObj.getSplitTotalAmount());
+        res.setPayAmountFen(doObj.getPayAmountFen());
+        res.setPlatformIncomeFen(doObj.getPlatformIncomeFen());
+        res.setPayFeeFen(doObj.getPayFeeFen());
+        res.setSplitTotalAmountFen(doObj.getSplitTotalAmountFen());
+        res.setReconStatus(doObj.getReconStatus());
+        res.setPayStatus(doObj.getPayStatus());
+        res.setSplitStatus(doObj.getSplitStatus());
+        res.setNotifyStatus(doObj.getNotifyStatus());
+        res.setNotifyResult(doObj.getNotifyResult());
+        res.setRefundAmount(doObj.getRefundAmount());
+        res.setRefundAmountFen(doObj.getRefundAmountFen());
+        res.setRefundStatus(doObj.getRefundStatus());
+        res.setRefundTime(doObj.getRefundTime());
+        res.setCreateTime(doObj.getCreateTime());
+        res.setUpdateTime(doObj.getUpdateTime());
+        return res;
+    }
+
+    private ReconExceptionResult mapToExceptionResult(ReconExceptionDO doObj) {
+        if (doObj == null)
+            return null;
+        ReconExceptionResult res = new ReconExceptionResult();
+        res.setOrderNo(doObj.getOrderNo());
+        res.setMerchantId(doObj.getMerchantId());
+        res.setExceptionMsg(doObj.getExceptionMsg());
+        res.setExceptionStep(doObj.getExceptionStep());
+        res.setCreateTime(doObj.getCreateTime());
+        res.setUpdateTime(doObj.getUpdateTime());
+        return res;
+    }
+
+    private ReconSummaryResult mapToSummaryResult(ReconSummaryDO doObj) {
+        if (doObj == null)
+            return null;
+        ReconSummaryResult res = new ReconSummaryResult();
+        res.setSummaryDate(doObj.getSummaryDate());
+        res.setTotalOrders(doObj.getTotalOrders());
+        res.setSuccessCount(doObj.getSuccessCount());
+        res.setFailCount(doObj.getFailCount());
+        res.setInitCount(doObj.getInitCount());
+        res.setTotalAmount(doObj.getTotalAmount());
+        res.setTotalAmountFen(doObj.getTotalAmountFen());
+        return res;
+    }
+
+    private ReconOrderSplitDetailResult mapToSplitDetailResult(ReconOrderSplitDetailDO doObj) {
+        if (doObj == null)
+            return null;
+        ReconOrderSplitDetailResult res = new ReconOrderSplitDetailResult();
+        res.setOrderNo(doObj.getOrderNo());
+        res.setMerchantId(doObj.getMerchantId());
+        res.setSplitAmount(doObj.getSplitAmount());
+        res.setSplitAmountFen(doObj.getSplitAmountFen());
+        res.setNotifyStatus(doObj.getNotifyStatus());
+        res.setSettlementType(doObj.getSettlementType());
+        res.setArrivalAmount(doObj.getArrivalAmount());
+        res.setArrivalAmountFen(doObj.getArrivalAmountFen());
+        res.setSplitFee(doObj.getSplitFee());
+        res.setSplitFeeFen(doObj.getSplitFeeFen());
+        res.setNotifyResult(doObj.getNotifyResult());
+        res.setCreateTime(doObj.getCreateTime());
+        res.setUpdateTime(doObj.getUpdateTime());
+        return res;
+    }
+
+    private ReconOrderSubResult mapToOrderSubResult(ReconOrderSubDO doObj) {
+        if (doObj == null)
+            return null;
+        ReconOrderSubResult res = new ReconOrderSubResult();
+        res.setOrderNo(doObj.getOrderNo());
+        res.setSubOrderNo(doObj.getSubOrderNo());
+        res.setMerchantOrderNo(doObj.getMerchantOrderNo());
+        res.setMerchantId(doObj.getMerchantId());
+        res.setOrderAmount(doObj.getOrderAmount());
+        res.setOrderAmountFen(doObj.getOrderAmountFen());
+        res.setSplitAmount(doObj.getSplitAmount());
+        res.setSplitAmountFen(doObj.getSplitAmountFen());
+        res.setFee(doObj.getFee());
+        res.setFeeFen(doObj.getFeeFen());
+        res.setSplitRatio(doObj.getSplitRatio());
+        res.setCreateTime(doObj.getCreateTime());
+        res.setUpdateTime(doObj.getUpdateTime());
+        return res;
+    }
+
+    private ReconOrderRefundDetailResult mapToRefundDetailResult(ReconOrderRefundDetailDO doObj) {
+        if (doObj == null)
+            return null;
+        ReconOrderRefundDetailResult res = new ReconOrderRefundDetailResult();
+        res.setOrderNo(doObj.getOrderNo());
+        res.setMerchantId(doObj.getMerchantId());
+        res.setRefundSplitAmount(doObj.getRefundSplitAmount());
+        res.setRefundSplitAmountFen(doObj.getRefundSplitAmountFen());
+        res.setCreateTime(doObj.getCreateTime());
+        res.setUpdateTime(doObj.getUpdateTime());
+        return res;
+    }
+
+    private ReconNotifyLogResult mapToNotifyLogResult(ReconNotifyLogDO doObj) {
+        if (doObj == null)
+            return null;
+        ReconNotifyLogResult res = new ReconNotifyLogResult();
+        res.setOrderNo(doObj.getOrderNo());
+        res.setSubOrderNo(doObj.getSubOrderNo());
+        res.setMerchantId(doObj.getMerchantId());
+        res.setNotifyUrl(doObj.getNotifyUrl());
+        res.setNotifyStatus(doObj.getNotifyStatus());
+        res.setNotifyResult(doObj.getNotifyResult());
+        res.setCreateTime(doObj.getCreateTime());
+        res.setUpdateTime(doObj.getUpdateTime());
+        return res;
     }
 
 }

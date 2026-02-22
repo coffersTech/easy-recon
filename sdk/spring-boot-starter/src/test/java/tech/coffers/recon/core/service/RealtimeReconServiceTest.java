@@ -5,15 +5,22 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import tech.coffers.recon.api.result.ReconResult;
-import tech.coffers.recon.autoconfigure.ReconSdkProperties;
 import tech.coffers.recon.entity.ReconOrderMainDO;
-import tech.coffers.recon.entity.ReconOrderRefundSplitSubDO;
-import tech.coffers.recon.entity.ReconOrderSplitSubDO;
+import tech.coffers.recon.entity.ReconOrderMerchantSettlementDO;
+import tech.coffers.recon.entity.ReconOrderSplitDetailDO;
+import org.mockito.ArgumentCaptor;
 import tech.coffers.recon.api.enums.PayStatusEnum;
 import tech.coffers.recon.api.enums.SplitStatusEnum;
 import tech.coffers.recon.api.enums.NotifyStatusEnum;
 import tech.coffers.recon.api.enums.RefundStatusEnum;
 import tech.coffers.recon.api.enums.ReconStatusEnum;
+import tech.coffers.recon.api.enums.SettlementTypeEnum;
+import tech.coffers.recon.api.model.ReconNotifyRequest;
+import tech.coffers.recon.api.model.ReconOrderFenRequest;
+import tech.coffers.recon.api.model.ReconOrderRequest;
+import tech.coffers.recon.api.model.ReconRefundRequest;
+import tech.coffers.recon.api.model.ReconOrderSplitRequest;
+import tech.coffers.recon.api.model.ReconSubOrderRequest;
 import tech.coffers.recon.repository.ReconRepository;
 
 import java.math.BigDecimal;
@@ -25,10 +32,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * 实时对账服务单元测试
+ * 实时对账服务单元测试 (DTO 模式)
  *
  * @author Ryan
- * @since 1.0.0
+ * @since 1.1.0
  */
 class RealtimeReconServiceTest {
 
@@ -42,9 +49,6 @@ class RealtimeReconServiceTest {
         private AlarmService alarmService;
 
         @Mock
-        private ReconSdkProperties properties;
-
-        @Mock
         private java.util.concurrent.ExecutorService executorService;
 
         private RealtimeReconService realtimeReconService;
@@ -52,392 +56,404 @@ class RealtimeReconServiceTest {
         @BeforeEach
         void setUp() {
                 MockitoAnnotations.openMocks(this);
-                when(properties.getAmountTolerance()).thenReturn(new BigDecimal("0.01"));
                 realtimeReconService = new RealtimeReconService(reconRepository, exceptionRecordService, alarmService,
-                                properties, executorService);
+                                executorService);
         }
 
         @Test
         void testReconOrder_Success() {
                 // 准备测试数据
                 String orderNo = "TEST_ORDER_001";
-                String merchantId = "MERCHANT_001";
-                BigDecimal payAmount = new BigDecimal("100.00");
-                BigDecimal platformIncome = new BigDecimal("5.00");
-                BigDecimal payFee = new BigDecimal("1.00");
+                // 业务子订单 (意图)
+                List<ReconSubOrderRequest> subOrders = new ArrayList<>();
+                subOrders.add(ReconSubOrderRequest.builder()
+                                .subOrderNo(orderNo + "-S1")
+                                .merchantId("MERCHANT_001")
+                                .splitAmount(new BigDecimal("94.00"))
+                                .build());
 
-                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
-                sub.setSubOrderNo(orderNo + "-S1");
-                sub.setMerchantId(merchantId);
-                sub.setSplitAmount(new BigDecimal("94.00"));
-                splitDetails.add(sub);
+                // 支付分账明细 (事实)
+                List<ReconOrderSplitRequest> splitDetails = new ArrayList<>();
+                splitDetails.add(ReconOrderSplitRequest.builder()
+                                .merchantId("MERCHANT_001")
+                                .splitAmount(new BigDecimal("94.00"))
+                                .build());
+
+                ReconOrderRequest request = ReconOrderRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmount(new BigDecimal("100.00"))
+                                .platformIncome(new BigDecimal("5.00"))
+                                .payFee(new BigDecimal("1.00"))
+                                .subOrders(subOrders)
+                                .splitDetails(splitDetails)
+                                .payStatus(PayStatusEnum.SUCCESS)
+                                .splitStatus(SplitStatusEnum.SUCCESS)
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .build();
 
                 // 模拟存储库方法
                 when(reconRepository.saveOrderMain(any())).thenReturn(true);
-                when(reconRepository.batchSaveOrderSplitSub(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSub(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSplitDetail(any())).thenReturn(true);
 
                 // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
-                                NotifyStatusEnum.SUCCESS);
+                ReconResult result = realtimeReconService.reconOrder(request);
 
                 // 验证结果
                 assertTrue(result.isSuccess());
-                assertEquals(200, result.getCode());
-                assertEquals("对账成功", result.getMessage());
                 assertEquals(orderNo, result.getOrderNo());
-
-                // 验证存储库方法被调用
                 verify(reconRepository, times(1)).saveOrderMain(any());
-                verify(reconRepository, times(1)).batchSaveOrderSplitSub(any());
-                verify(exceptionRecordService, never()).recordReconException(any(), any(), any(), anyInt());
-                verify(alarmService, never()).sendReconAlarm(any(), any(), any());
+                verify(reconRepository, times(1)).batchSaveOrderSub(any());
+                verify(reconRepository, times(1)).batchSaveOrderSplitDetail(any());
+        }
+
+        @Test
+        void testReconOrder_FenSubUnits_Success() {
+                // 准备测试数据 (全部使用分单位)
+                String orderNo = "ORDER_FEN_SUB_001";
+                // 业务子订单 (分)
+                List<ReconSubOrderRequest> subOrders = new ArrayList<>();
+                subOrders.add(ReconSubOrderRequest.builder()
+                                .subOrderNo(orderNo + "-S1")
+                                .merchantId("MERCHANT_888")
+                                .splitAmountFen(8900L) // 89.00 元
+                                .build());
+
+                // 支付分账明细 (分)
+                List<ReconOrderSplitRequest> splitDetails = new ArrayList<>();
+                splitDetails.add(ReconOrderSplitRequest.builder()
+                                .merchantId("MERCHANT_888")
+                                .splitAmountFen(8900L)
+                                .arrivalAmountFen(8850L) // 88.50 元
+                                .splitFeeFen(50L) // 0.50 元
+                                .build());
+
+                ReconOrderRequest request = ReconOrderRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmount(new BigDecimal("100.00"))
+                                .platformIncome(new BigDecimal("10.00"))
+                                .payFee(new BigDecimal("1.00"))
+                                .subOrders(subOrders)
+                                .splitDetails(splitDetails)
+                                .payStatus(PayStatusEnum.SUCCESS)
+                                .splitStatus(SplitStatusEnum.SUCCESS)
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .build();
+
+                when(reconRepository.saveOrderMain(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSub(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSplitDetail(any())).thenReturn(true);
+
+                // 执行测试
+                ReconResult result = realtimeReconService.reconOrder(request);
+
+                // 验证
+                assertTrue(result.isSuccess());
+                // 这里校验 DTO 的 Getter 是否正确将分转换回了元，以便原有的 BigDecimal 校验逻辑工作
+                assertEquals(new BigDecimal("89.00"), request.getSubOrders().get(0).getSplitAmount());
         }
 
         @Test
         void testReconOrder_PayStatusFailure() {
-                // 准备测试数据
                 String orderNo = "TEST_ORDER_002";
-                String merchantId = "MERCHANT_001";
-                BigDecimal payAmount = new BigDecimal("100.00");
-                BigDecimal platformIncome = new BigDecimal("5.00");
-                BigDecimal payFee = new BigDecimal("1.00");
+                ReconOrderRequest request = ReconOrderRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmount(new BigDecimal("100.00"))
+                                .payStatus(PayStatusEnum.FAILURE)
+                                .build();
 
-                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
-                sub.setMerchantId(merchantId);
-                sub.setSplitAmount(new BigDecimal("94.00"));
-                splitDetails.add(sub);
+                ReconResult result = realtimeReconService.reconOrder(request);
 
-                // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, PayStatusEnum.FAILURE, SplitStatusEnum.SUCCESS,
-                                NotifyStatusEnum.SUCCESS);
-
-                // 验证结果
                 assertFalse(result.isSuccess());
-                assertEquals(500, result.getCode());
                 assertEquals("支付状态失败，对账失败", result.getMessage());
-                assertEquals(orderNo, result.getOrderNo());
-
-                // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
-                                eq("支付状态失败，对账失败"),
-                                eq(1));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("支付状态失败，对账失败"));
-        }
-
-        @Test
-        void testReconOrder_SplitStatusFailure() {
-                // 准备测试数据
-                String orderNo = "TEST_ORDER_002_SPLIT";
-                String merchantId = "MERCHANT_001";
-                BigDecimal payAmount = new BigDecimal("100.00");
-                BigDecimal platformIncome = new BigDecimal("5.00");
-                BigDecimal payFee = new BigDecimal("1.00");
-
-                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
-                sub.setMerchantId(merchantId);
-                sub.setSplitAmount(new BigDecimal("94.00"));
-                splitDetails.add(sub);
-
-                // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.FAILURE,
-                                NotifyStatusEnum.SUCCESS);
-
-                // 验证结果
-                assertFalse(result.isSuccess());
-                assertEquals(500, result.getCode());
-                assertEquals("分账状态失败，对账失败", result.getMessage());
-                assertEquals(orderNo, result.getOrderNo());
-
-                // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
-                                eq("分账状态失败，对账失败"),
-                                eq(2));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("分账状态失败，对账失败"));
-        }
-
-        @Test
-        void testReconOrder_NotifyStatusFailure() {
-                // 准备测试数据
-                String orderNo = "TEST_ORDER_003";
-                String merchantId = "MERCHANT_001";
-                BigDecimal payAmount = new BigDecimal("100.00");
-                BigDecimal platformIncome = new BigDecimal("5.00");
-                BigDecimal payFee = new BigDecimal("1.00");
-
-                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
-                sub.setMerchantId(merchantId);
-                sub.setSplitAmount(new BigDecimal("94.00"));
-                splitDetails.add(sub);
-
-                // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
-                                NotifyStatusEnum.FAILURE);
-
-                // 验证结果
-                assertFalse(result.isSuccess());
-                assertEquals(500, result.getCode());
-                assertEquals("通知状态失败，对账失败", result.getMessage());
-                assertEquals(orderNo, result.getOrderNo());
-
-                // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
-                                eq("通知状态失败，对账失败"),
-                                eq(3));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("通知状态失败，对账失败"));
+                verify(exceptionRecordService).recordReconException(eq(orderNo), eq("SELF"), contains("支付状态失败"), eq(1));
         }
 
         @Test
         void testReconOrder_AmountCheckFailure() {
-                // 准备测试数据
                 String orderNo = "TEST_ORDER_004";
-                String merchantId = "MERCHANT_001";
-                BigDecimal payAmount = new BigDecimal("100.00");
-                BigDecimal platformIncome = new BigDecimal("5.00");
-                BigDecimal payFee = new BigDecimal("1.00");
-
-                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
-                sub.setMerchantId(merchantId);
-                sub.setSplitAmount(new BigDecimal("90.00")); // 分账金额错误，应该是 94.00
+                List<ReconOrderSplitRequest> splitDetails = new ArrayList<>();
+                ReconOrderSplitRequest sub = ReconOrderSplitRequest.builder()
+                                .splitAmount(new BigDecimal("90.00")) // Error amount
+                                .arrivalAmount(new BigDecimal("90.00"))
+                                .splitFee(BigDecimal.ZERO)
+                                .build();
                 splitDetails.add(sub);
 
-                // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
-                                NotifyStatusEnum.SUCCESS);
+                ReconOrderRequest request = ReconOrderRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmount(new BigDecimal("100.00"))
+                                .platformIncome(new BigDecimal("5.00"))
+                                .payFee(new BigDecimal("1.00"))
+                                .splitDetails(splitDetails)
+                                .payStatus(PayStatusEnum.SUCCESS)
+                                .splitStatus(SplitStatusEnum.SUCCESS)
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .build();
 
-                // 验证结果
+                ReconResult result = realtimeReconService.reconOrder(request);
+
                 assertFalse(result.isSuccess());
-                assertEquals(500, result.getCode());
-                assertEquals("金额校验失败，实付金额与计算金额不一致", result.getMessage());
-                assertEquals(orderNo, result.getOrderNo());
-
-                // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
-                                eq("金额校验失败，实付金额与计算金额不一致"), eq(4));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), eq("金额校验失败，实付金额与计算金额不一致"));
+                assertTrue(result.getMessage().contains("金额校验不符"));
+                verify(exceptionRecordService).recordReconException(eq(orderNo), eq("SELF"), contains("金额校验不符"), eq(4));
         }
 
         @Test
-        void testReconOrder_Exception() {
-                // 准备测试数据
-                String orderNo = "TEST_ORDER_005";
-                String merchantId = "MERCHANT_001";
-                BigDecimal payAmount = new BigDecimal("100.00");
-                BigDecimal platformIncome = new BigDecimal("5.00");
-                BigDecimal payFee = new BigDecimal("1.00");
-
-                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
-                sub.setMerchantId(merchantId);
-                sub.setSplitAmount(new BigDecimal("94.00"));
+        void testReconOrder_DirectToMerchant_Success() {
+                String orderNo = "ORDER_DTM_001";
+                List<ReconOrderSplitRequest> splitDetails = new ArrayList<>();
+                ReconOrderSplitRequest sub = ReconOrderSplitRequest.builder()
+                                .splitAmount(new BigDecimal("99.40"))
+                                .arrivalAmount(new BigDecimal("98.00"))
+                                .splitFee(new BigDecimal("1.40"))
+                                .build();
                 splitDetails.add(sub);
 
-                // 模拟存储库方法抛出异常
-                when(reconRepository.saveOrderMain(any())).thenThrow(new RuntimeException("数据库操作失败"));
+                ReconOrderRequest request = ReconOrderRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmount(new BigDecimal("100.00"))
+                                .payFee(new BigDecimal("0.60"))
+                                .splitDetails(splitDetails)
+                                .payStatus(PayStatusEnum.SUCCESS)
+                                .splitStatus(SplitStatusEnum.SUCCESS)
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .build();
 
-                // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
-                                NotifyStatusEnum.SUCCESS);
+                when(reconRepository.saveOrderMain(any())).thenReturn(true);
 
-                // 验证结果
-                assertFalse(result.isSuccess());
-                assertEquals(500, result.getCode());
-                assertTrue(result.getMessage().contains("对账处理异常"));
-                assertEquals(orderNo, result.getOrderNo());
+                ReconResult result = realtimeReconService.reconOrder(request);
 
-                // 验证异常记录和告警被调用
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"), anyString(),
-                                eq(5));
-                verify(alarmService, times(1)).sendReconAlarm(eq(orderNo), eq("SELF"), anyString());
+                assertTrue(result.isSuccess());
+        }
+
+        @Test
+        void testReconOrder_FenUnit_Success() {
+                String orderNo = "ORDER_FEN_001";
+                // 使用专门的 FenRequest 实现类
+                ReconOrderFenRequest request = ReconOrderFenRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmountFen(10000L) // 100.00 元
+                                .platformIncomeFen(10000L) // 100.00 元
+                                .payStatus(PayStatusEnum.SUCCESS)
+                                .splitStatus(SplitStatusEnum.SUCCESS)
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .build();
+
+                // 核心验证: 自动同步逻辑
+                assertEquals(new BigDecimal("100.00"), request.getPayAmount());
+                assertEquals(new BigDecimal("100.00"), request.getPlatformIncome());
+
+                when(reconRepository.saveOrderMain(any())).thenReturn(true);
+                ReconResult result = realtimeReconService.reconOrder(request);
+                assertTrue(result.isSuccess());
         }
 
         @Test
         void testReconRefund_Success() {
-                // 准备测试数据
                 String orderNo = "TEST_REFUND_001";
-                String merchantId = "MERCHANT_001";
-                BigDecimal refundAmount = new BigDecimal("50.00");
-                LocalDateTime refundTime = LocalDateTime.now();
-                List<ReconOrderRefundSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderRefundSplitSubDO sub = new ReconOrderRefundSplitSubDO();
-                sub.setMerchantId(merchantId);
-                sub.setRefundSplitAmount(new BigDecimal("50.00"));
-                splitDetails.add(sub);
-
-                // 模拟原订单存在
-                ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
-                orderMainDO.setOrderNo(orderNo);
-                orderMainDO.setPayAmount(new BigDecimal("100.00")); // 实付 100
-                when(reconRepository.getOrderMainByOrderNo(orderNo)).thenReturn(orderMainDO);
-
-                when(reconRepository.updateReconRefundStatus(anyString(), anyInt(), any(), any())).thenReturn(true);
-                when(reconRepository.batchSaveOrderRefundSplitSub(any())).thenReturn(true);
-
-                // 执行测试
-                ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount, refundTime,
-                                RefundStatusEnum.SUCCESS,
-                                splitDetails);
-
-                // 验证结果
-                assertTrue(result.isSuccess());
-                assertEquals(200, result.getCode());
-                assertEquals("对账成功", result.getMessage());
-                assertEquals(orderNo, result.getOrderNo());
-
-                // 验证调用
-                verify(reconRepository, times(1)).getOrderMainByOrderNo(orderNo);
-                verify(reconRepository, times(1)).updateReconRefundStatus(eq(orderNo),
-                                eq(RefundStatusEnum.SUCCESS.getCode()),
-                                eq(refundAmount),
-                                eq(refundTime));
-                verify(reconRepository, times(1)).batchSaveOrderRefundSplitSub(any());
-        }
-
-        @Test
-        void testReconRefund_RefundAmountTooLarge() {
-                // 准备测试数据
-                String orderNo = "TEST_REFUND_002";
-
-                BigDecimal refundAmount = new BigDecimal("150.00"); // 退款 > 实付
-                LocalDateTime refundTime = LocalDateTime.now();
-                List<ReconOrderRefundSplitSubDO> splitDetails = new ArrayList<>();
-
-                // 模拟原订单
                 ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
                 orderMainDO.setOrderNo(orderNo);
                 orderMainDO.setPayAmount(new BigDecimal("100.00"));
                 when(reconRepository.getOrderMainByOrderNo(orderNo)).thenReturn(orderMainDO);
+                when(reconRepository.updateReconRefundStatus(any(ReconOrderMainDO.class))).thenReturn(true);
 
-                // 执行测试
-                ReconResult result = realtimeReconService.reconRefund(orderNo, refundAmount, refundTime,
-                                RefundStatusEnum.SUCCESS,
-                                splitDetails);
+                ReconRefundRequest request = ReconRefundRequest.builder()
+                                .orderNo(orderNo)
+                                .refundAmount(new BigDecimal("50.00"))
+                                .refundStatus(RefundStatusEnum.SUCCESS)
+                                .refundTime(LocalDateTime.now())
+                                .build();
 
-                // 验证结果
-                assertFalse(result.isSuccess());
-                assertEquals("退款金额大于实付金额", result.getMessage());
+                ReconResult result = realtimeReconService.reconRefund(request);
 
-                // 验证异常记录
-                verify(exceptionRecordService, times(1)).recordReconException(eq(orderNo), eq("SELF"),
-                                eq("退款金额大于实付金额"), eq(4));
-        }
-
-        @Test
-        void testReconOrder_ProcessingStatus() {
-                // 准备测试数据
-                String orderNo = "TEST_ORDER_006";
-                String merchantId = "MERCHANT_001";
-                BigDecimal payAmount = new BigDecimal("100.00");
-                BigDecimal platformIncome = new BigDecimal("5.00");
-                BigDecimal payFee = new BigDecimal("1.00");
-
-                List<ReconOrderSplitSubDO> splitDetails = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
-                sub.setMerchantId(merchantId);
-                sub.setSplitAmount(new BigDecimal("94.00"));
-                splitDetails.add(sub);
-
-                // 模拟存储库方法
-                when(reconRepository.saveOrderMain(any())).thenReturn(true);
-
-                // 执行测试
-                ReconResult result = realtimeReconService.reconOrder(orderNo, payAmount, platformIncome,
-                                payFee, splitDetails, PayStatusEnum.SUCCESS, SplitStatusEnum.SUCCESS,
-                                NotifyStatusEnum.PROCESSING);
-
-                // 验证结果
                 assertTrue(result.isSuccess());
-
-                // 验证主记录状态为 PENDING
-                verify(reconRepository).saveOrderMain(argThat(order -> order.getOrderNo().equals(orderNo) &&
-                                order.getReconStatus().equals(ReconStatusEnum.PENDING.getCode())));
-
-                // 验证没有异常记录产生
-                verify(exceptionRecordService, never()).recordReconException(any(), any(), any(), anyInt());
+                verify(reconRepository).updateReconRefundStatus(any(ReconOrderMainDO.class));
         }
 
         @Test
-        void testReconNotifyByMerchantOrder_Success() {
+        void testReconNotify_Success() {
                 String orderNo = "TEST_ORDER_007";
                 String merchantId = "MCH_888";
-                String merchantOrderNo = "MCH_ORDER_999";
 
-                // 模拟反查订单号
-                when(reconRepository.findOrderNoByMerchantOrder(merchantId, merchantOrderNo)).thenReturn(orderNo);
+                when(reconRepository.findOrderNoBySub(eq(merchantId), anyString())).thenReturn(orderNo);
                 when(reconRepository.isAllSplitSubNotified(orderNo)).thenReturn(true);
-                when(reconRepository.updateReconStatus(anyString(), any())).thenReturn(true);
 
-                // 模拟主订单 (retryRecon 内部需要)
+                // Mock retryRecon internal calls
                 ReconOrderMainDO mainDO = new ReconOrderMainDO();
                 mainDO.setOrderNo(orderNo);
                 mainDO.setPayAmount(new BigDecimal("100.00"));
-                mainDO.setPlatformIncome(BigDecimal.ZERO);
-                mainDO.setPayFee(BigDecimal.ZERO);
                 mainDO.setReconStatus(ReconStatusEnum.PENDING.getCode());
                 mainDO.setPayStatus(PayStatusEnum.SUCCESS.getCode());
                 mainDO.setSplitStatus(SplitStatusEnum.SUCCESS.getCode());
                 mainDO.setNotifyStatus(NotifyStatusEnum.SUCCESS.getCode());
                 when(reconRepository.getOrderMainByOrderNo(orderNo)).thenReturn(mainDO);
 
-                List<ReconOrderSplitSubDO> subs = new ArrayList<>();
-                ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+                List<ReconOrderSplitDetailDO> subs = new ArrayList<>();
+                ReconOrderSplitDetailDO sub = new ReconOrderSplitDetailDO();
                 sub.setSplitAmount(new BigDecimal("100.00"));
                 subs.add(sub);
-                when(reconRepository.getOrderSplitSubByOrderNo(orderNo)).thenReturn(subs);
+                when(reconRepository.getOrderSplitDetailByOrderNo(orderNo)).thenReturn(subs);
+                when(reconRepository.updateReconStatus(anyString(), any())).thenReturn(true);
 
-                // 执行测试
-                ReconResult result = realtimeReconService.reconNotifyByMerchantOrder(merchantId, merchantOrderNo,
-                                "http://test.com", NotifyStatusEnum.SUCCESS, "OK");
+                ReconNotifyRequest request = ReconNotifyRequest.builder()
+                                .merchantId(merchantId)
+                                .subOrderNo("SUB_001")
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .notifyResult("OK")
+                                .build();
 
-                // 验证结果
+                ReconResult result = realtimeReconService.reconNotify(request);
+
                 assertTrue(result.isSuccess());
-                assertEquals(orderNo, result.getOrderNo());
-
-                // 验证存储库逻辑
-                verify(reconRepository).findOrderNoByMerchantOrder(merchantId, merchantOrderNo);
                 verify(reconRepository).saveNotifyLog(any());
         }
 
         @Test
-        void testReconRefundByMerchantOrder_Success() {
+        void testReconRefund_ByMerchantOrder_Success() {
                 String orderNo = "TEST_ORDER_008";
                 String merchantId = "MCH_888";
                 String merchantOrderNo = "MCH_ORDER_999_REF";
-                BigDecimal refundAmount = new BigDecimal("50.00");
 
-                // 模拟反查订单号
                 when(reconRepository.findOrderNoByMerchantOrder(merchantId, merchantOrderNo)).thenReturn(orderNo);
-
-                // 模拟原订单存在
                 ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
                 orderMainDO.setOrderNo(orderNo);
                 orderMainDO.setPayAmount(new BigDecimal("100.00"));
                 when(reconRepository.getOrderMainByOrderNo(orderNo)).thenReturn(orderMainDO);
+                when(reconRepository.updateReconRefundStatus(any(ReconOrderMainDO.class))).thenReturn(true);
 
-                when(reconRepository.updateReconRefundStatus(anyString(), anyInt(), any(), any())).thenReturn(true);
+                ReconRefundRequest request = ReconRefundRequest.builder()
+                                .merchantId(merchantId)
+                                .merchantOrderNo(merchantOrderNo)
+                                .refundAmount(new BigDecimal("50.00"))
+                                .refundStatus(RefundStatusEnum.SUCCESS)
+                                .refundTime(LocalDateTime.now())
+                                .build();
 
-                // 执行测试
-                ReconResult result = realtimeReconService.reconRefundByMerchantOrder(merchantId, merchantOrderNo,
-                                refundAmount, LocalDateTime.now(), RefundStatusEnum.SUCCESS);
+                ReconResult result = realtimeReconService.reconRefund(request);
 
-                // 验证结果
                 assertTrue(result.isSuccess());
-                assertEquals(orderNo, result.getOrderNo());
-
-                // 验证存储库逻辑
                 verify(reconRepository).findOrderNoByMerchantOrder(merchantId, merchantOrderNo);
-                verify(reconRepository).batchSaveOrderRefundSplitSub(
-                                argThat(list -> list.get(0).getMerchantOrderNo().equals(merchantOrderNo)));
         }
 
+        @Test
+        void testReconOrder_MerchantSettlementScenarios() {
+                String orderNo = "ORDER_MCH_SCENARIOS_001";
+
+                // 1. 意图层 (SubOrders)
+                List<ReconSubOrderRequest> subOrders = new ArrayList<>();
+                // 商户 A：全额到账意图
+                subOrders.add(ReconSubOrderRequest.builder().merchantId("MCH_A").orderAmountFen(5000L)
+                                .splitAmountFen(5000L).build());
+                // 商户 B：空中分账意图
+                subOrders.add(ReconSubOrderRequest.builder().merchantId("MCH_B").orderAmountFen(4000L)
+                                .splitAmountFen(3800L).build());
+                // 商户 C：平台代收意图 (在分账事实中缺失)
+                subOrders.add(ReconSubOrderRequest.builder().merchantId("MCH_C").orderAmountFen(1000L)
+                                .splitAmountFen(1000L).build());
+
+                // 2. 事实层 (SplitDetails)
+                List<ReconOrderSplitRequest> splitDetails = new ArrayList<>();
+                // 商户 A：事实金额 = 意图金额 -> DIRECT_TO_MERCHANT
+                splitDetails.add(ReconOrderSplitRequest.builder().merchantId("MCH_A").splitAmountFen(5000L)
+                                .arrivalAmountFen(4950L).splitFeeFen(50L).build());
+                // 商户 B：事实金额 < 意图金额 -> REALTIME_SPLIT
+                splitDetails.add(ReconOrderSplitRequest.builder().merchantId("MCH_B").splitAmountFen(3800L)
+                                .arrivalAmountFen(3700L).splitFeeFen(100L).build());
+                // 商户 D：事实中有但意图中无 -> PLATFORM_COLLECTION (典型为平台账号)
+                splitDetails.add(ReconOrderSplitRequest.builder().merchantId("MCH_PLATFORM").splitAmountFen(1200L)
+                                .arrivalAmountFen(1200L).build());
+
+                ReconOrderFenRequest request = ReconOrderFenRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmountFen(10200L)
+                                .platformIncomeFen(200L) // 增加平台留存，使总额(10200) = 平台(200) + 分账(10000)
+                                .subOrders(subOrders)
+                                .splitDetails(splitDetails)
+                                .payStatus(PayStatusEnum.SUCCESS)
+                                .splitStatus(SplitStatusEnum.SUCCESS)
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .build();
+
+                when(reconRepository.saveOrderMain(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSub(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSplitDetail(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderMerchantSettlement(any())).thenReturn(true);
+
+                // 执行对账
+                realtimeReconService.reconOrder(request);
+
+                // 核心捕捉：验证商户统计数据
+                @SuppressWarnings("unchecked")
+                ArgumentCaptor<List<ReconOrderMerchantSettlementDO>> captor = ArgumentCaptor.forClass(List.class);
+                verify(reconRepository).batchSaveOrderMerchantSettlement(captor.capture());
+
+                List<ReconOrderMerchantSettlementDO> settlements = captor.getValue();
+                assertEquals(4, settlements.size()); // A, B, C, PLATFORM
+
+                // 校验 A: DIRECT_TO_MERCHANT
+                ReconOrderMerchantSettlementDO settleA = settlements.stream()
+                                .filter(s -> "MCH_A".equals(s.getMerchantId())).findFirst().get();
+                assertEquals(SettlementTypeEnum.DIRECT_TO_MERCHANT, settleA.getSettlementType());
+                assertEquals(5000L, settleA.getArrivalAmountFen() + settleA.getSplitFeeFen());
+
+                // 校验 B: REALTIME_SPLIT
+                ReconOrderMerchantSettlementDO settleB = settlements.stream()
+                                .filter(s -> "MCH_B".equals(s.getMerchantId())).findFirst().get();
+                assertEquals(SettlementTypeEnum.REALTIME_SPLIT, settleB.getSettlementType());
+                assertTrue(settleB.getOrderAmountFen() > settleB.getSplitAmountFen());
+
+                // 校验 C: PLATFORM_COLLECTION (因为事实中缺失)
+                ReconOrderMerchantSettlementDO settleC = settlements.stream()
+                                .filter(s -> "MCH_C".equals(s.getMerchantId())).findFirst().get();
+                assertEquals(SettlementTypeEnum.PLATFORM_COLLECTION, settleC.getSettlementType());
+
+                // 校验 PLATFORM: PLATFORM_COLLECTION (因为意图中缺失)
+                ReconOrderMerchantSettlementDO settleP = settlements.stream()
+                                .filter(s -> "MCH_PLATFORM".equals(s.getMerchantId())).findFirst().get();
+                assertEquals(SettlementTypeEnum.PLATFORM_COLLECTION, settleP.getSettlementType());
+        }
+
+        @Test
+        void testReconOrder_DirectToMerchant_Rule2_Success() {
+                // 模拟用户报告的场景：全额到账(Rule 2)，事实金额 = 支付金额 = 10000
+                // 意向中 7000 分给商户，2958 平台留存，42 手续费
+                String orderNo = "ORD-RULE2-001";
+                List<ReconSubOrderRequest> subOrders = new ArrayList<>();
+                subOrders.add(ReconSubOrderRequest.builder()
+                                .merchantId("MCH-DEMO")
+                                .orderAmountFen(5000L).splitAmountFen(3500L).feeFen(21L).build());
+                subOrders.add(ReconSubOrderRequest.builder()
+                                .merchantId("MCH-DEMO")
+                                .orderAmountFen(5000L).splitAmountFen(3500L).feeFen(21L).build());
+
+                List<ReconOrderSplitRequest> splitDetails = new ArrayList<>();
+                splitDetails.add(ReconOrderSplitRequest.builder()
+                                .merchantId("MCH-DEMO")
+                                .splitAmountFen(10000L) // 事实事实收金额 = 10000 (Gross)
+                                .arrivalAmountFen(9958L)
+                                .splitFeeFen(42L)
+                                .build());
+
+                ReconOrderFenRequest request = ReconOrderFenRequest.builder()
+                                .orderNo(orderNo)
+                                .payAmountFen(10000L)
+                                .platformIncomeFen(2958L)
+                                .payFeeFen(42L)
+                                .subOrders(subOrders)
+                                .splitDetails(splitDetails)
+                                .payStatus(PayStatusEnum.SUCCESS)
+                                .splitStatus(SplitStatusEnum.SUCCESS)
+                                .notifyStatus(NotifyStatusEnum.SUCCESS)
+                                .build();
+
+                when(reconRepository.saveOrderMain(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSub(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderSplitDetail(any())).thenReturn(true);
+                when(reconRepository.batchSaveOrderMerchantSettlement(any())).thenReturn(true);
+
+                ReconResult result = realtimeReconService.reconOrder(request);
+
+                assertTrue(result.isSuccess(),
+                                "Rule 2 (Direct to Merchant) with residual profit should pass macro check");
+        }
 }

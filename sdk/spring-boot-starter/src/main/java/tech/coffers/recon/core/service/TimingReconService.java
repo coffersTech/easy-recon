@@ -6,9 +6,10 @@ import tech.coffers.recon.api.enums.ReconStatusEnum;
 import tech.coffers.recon.api.enums.PayStatusEnum;
 import tech.coffers.recon.api.enums.SplitStatusEnum;
 import tech.coffers.recon.api.enums.NotifyStatusEnum;
+import tech.coffers.recon.api.enums.SettlementTypeEnum;
 import tech.coffers.recon.repository.ReconRepository;
 import tech.coffers.recon.autoconfigure.ReconSdkProperties;
-import tech.coffers.recon.entity.ReconOrderSplitSubDO;
+import tech.coffers.recon.entity.ReconOrderSplitDetailDO;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -84,8 +85,9 @@ public class TimingReconService {
      */
     private void processPendingOrder(ReconOrderMainDO order) {
         try {
-            // 1. 获取分账子记录
-            List<ReconOrderSplitSubDO> splitSubDOs = reconRepository.getOrderSplitSubByOrderNo(order.getOrderNo());
+            // 1. 获取事实明细
+            List<ReconOrderSplitDetailDO> splitDetailDOs = reconRepository
+                    .getOrderSplitDetailByOrderNo(order.getOrderNo());
 
             // 2. 检查业务状态：如果是处理中，则跳过本次定时处理
             if (PayStatusEnum.fromCode(order.getPayStatus()) == PayStatusEnum.PROCESSING ||
@@ -94,20 +96,19 @@ public class TimingReconService {
                 return;
             }
 
-            // 3. 计算分账总额
+            // 3. 计算分账总金额 (事实)
             BigDecimal splitTotal = BigDecimal.ZERO;
-            if (splitSubDOs != null) {
-                for (ReconOrderSplitSubDO sub : splitSubDOs) {
+            if (splitDetailDOs != null) {
+                for (ReconOrderSplitDetailDO sub : splitDetailDOs) {
                     splitTotal = splitTotal.add(sub.getSplitAmount());
                 }
             }
 
-            // 4. 校验金额 (核心业务规则：订单支付总额 = 分账总额 + 平台手续费 + 支付手续费)
-            BigDecimal calcAmount = splitTotal.add(order.getPlatformIncome()).add(order.getPayFee());
-
-            if (order.getPayAmount().subtract(calcAmount).abs().compareTo(properties.getAmountTolerance()) > 0) {
+            // 4. 校验金额 (重新推断到账方式)
+            SettlementTypeEnum settlementEnum = inferSettlementTypeFromFacts(order, splitDetailDOs);
+            if (!validateAmountBySettlementType(order, splitDetailDOs, settlementEnum)) {
                 // 金额校验失败，标记为 FAILURE 状态，等待人工介入
-                recordException(order.getOrderNo(), "SELF", "定时对账失败：金额校验不一致", 4);
+                recordException(order.getOrderNo(), "SELF", "定时对账失败：金额校验不平", 4);
                 reconRepository.updateReconStatus(order.getOrderNo(), ReconStatusEnum.FAILURE);
                 return;
             }
@@ -136,5 +137,73 @@ public class TimingReconService {
     private void recordException(String orderNo, String merchantId, String msg, int step) {
         exceptionRecordService.recordReconException(orderNo, merchantId, msg, step);
         alarmService.sendReconAlarm(orderNo, merchantId, msg);
+    }
+
+    private boolean validateAmountBySettlementType(ReconOrderMainDO order, List<ReconOrderSplitDetailDO> splitDetails,
+            SettlementTypeEnum settlementType) {
+        BigDecimal totalSplitFact = BigDecimal.ZERO;
+        BigDecimal totalArrival = BigDecimal.ZERO;
+        BigDecimal totalSubFee = BigDecimal.ZERO;
+
+        if (splitDetails != null) {
+            for (ReconOrderSplitDetailDO sub : splitDetails) {
+                if (sub.getSplitAmount() != null) {
+                    totalSplitFact = totalSplitFact.add(sub.getSplitAmount());
+                }
+                if (sub.getArrivalAmount() != null) {
+                    totalArrival = totalArrival.add(sub.getArrivalAmount());
+                }
+                if (sub.getSplitFee() != null) {
+                    totalSubFee = totalSubFee.add(sub.getSplitFee());
+                }
+            }
+        }
+
+        BigDecimal tolerance = properties.getAmountTolerance();
+
+        switch (settlementType) {
+            case PLATFORM_COLLECTION:
+                BigDecimal calc1 = totalSplitFact.add(order.getPlatformIncome()).add(order.getPayFee());
+                return order.getPayAmount().subtract(calc1).abs().compareTo(tolerance) <= 0;
+            case DIRECT_TO_MERCHANT:
+                BigDecimal calc2 = totalArrival.add(totalSubFee).add(order.getPayFee());
+                return order.getPayAmount().subtract(calc2).abs().compareTo(tolerance) <= 0;
+            case REALTIME_SPLIT:
+                BigDecimal calc3 = totalArrival.add(totalSubFee).add(order.getPlatformIncome()).add(order.getPayFee());
+                return order.getPayAmount().subtract(calc3).abs().compareTo(tolerance) <= 0;
+            default:
+                return false;
+        }
+    }
+
+    private SettlementTypeEnum inferSettlementTypeFromFacts(ReconOrderMainDO main,
+            List<ReconOrderSplitDetailDO> facts) {
+        if (facts == null || facts.isEmpty()) {
+            return SettlementTypeEnum.PLATFORM_COLLECTION;
+        }
+
+        java.util.Set<String> factMerchants = new java.util.HashSet<>();
+        long totalArrivalFen = 0L;
+        for (ReconOrderSplitDetailDO fact : facts) {
+            if (fact.getMerchantId() != null) {
+                factMerchants.add(fact.getMerchantId());
+            }
+            if (fact.getArrivalAmountFen() != null) {
+                totalArrivalFen += fact.getArrivalAmountFen();
+            }
+        }
+
+        if (factMerchants.size() > 1) {
+            return SettlementTypeEnum.REALTIME_SPLIT;
+        }
+
+        if (totalArrivalFen > 0) {
+            if (main.getPlatformIncomeFen() != null && main.getPlatformIncomeFen() > 0) {
+                return SettlementTypeEnum.REALTIME_SPLIT;
+            }
+            return SettlementTypeEnum.DIRECT_TO_MERCHANT;
+        }
+
+        return SettlementTypeEnum.PLATFORM_COLLECTION;
     }
 }

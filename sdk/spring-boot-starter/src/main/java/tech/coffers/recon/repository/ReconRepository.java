@@ -25,20 +25,28 @@ public interface ReconRepository {
         boolean saveOrderMain(ReconOrderMainDO orderMainDO);
 
         /**
-         * 保存单条分账子明细记录
+         * 批量保存业务子订单记录 (意图层)
          *
-         * @param splitSubDO 分账子记录
+         * @param orderSubDOs 业务子订单列表
          * @return 是否成功
          */
-        boolean saveOrderSplitSub(ReconOrderSplitSubDO splitSubDO);
+        boolean batchSaveOrderSub(List<ReconOrderSubDO> orderSubDOs);
 
         /**
-         * 批量保存分账子明细记录
+         * 保存单条分账事实明细
          *
-         * @param splitSubDOs 分账子记录列表
+         * @param splitDetailDO 分账事实明细
          * @return 是否成功
          */
-        boolean batchSaveOrderSplitSub(List<ReconOrderSplitSubDO> splitSubDOs);
+        boolean saveOrderSplitDetail(ReconOrderSplitDetailDO splitDetailDO);
+
+        /**
+         * 批量保存分账事实明细
+         *
+         * @param splitDetailDOs 分账事实明细列表
+         * @return 是否成功
+         */
+        boolean batchSaveOrderSplitDetail(List<ReconOrderSplitDetailDO> splitDetailDOs);
 
         /**
          * 记录核账异常信息并发送通知
@@ -73,12 +81,20 @@ public interface ReconRepository {
         ReconOrderMainDO getOrderMainByOrderNo(String orderNo);
 
         /**
-         * 根据主订单号查询所有级联的分账子记录
+         * 根据主订单号查询所有级联的分账事实明细
          *
          * @param orderNo 订单号
-         * @return 分账明细列表
+         * @return 分账事实列表
          */
-        List<ReconOrderSplitSubDO> getOrderSplitSubByOrderNo(String orderNo);
+        List<ReconOrderSplitDetailDO> getOrderSplitDetailByOrderNo(String orderNo);
+
+        /**
+         * 根据主订单号查询所有业务子单记录
+         *
+         * @param orderNo 订单号
+         * @return 业务子单列表
+         */
+        List<ReconOrderSubDO> getOrderSubByOrderNo(String orderNo);
 
         /**
          * 分页查询特定日期的待处理（未核账成功）订单
@@ -140,12 +156,11 @@ public interface ReconRepository {
          *
          * @param orderNo      主订单号
          * @param merchantId   子商户ID
-         * @param subOrderNo   子订单号
          * @param notifyStatus 状态码
          * @param notifyResult 原始返回结果
          * @return 更新结果
          */
-        boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, String subOrderNo, int notifyStatus,
+        boolean updateSplitDetailNotifyStatus(String orderNo, String merchantId, int notifyStatus,
                         String notifyResult);
 
         /**
@@ -168,9 +183,25 @@ public interface ReconRepository {
                         Integer exceptionStep, int offset, int limit);
 
         /**
-         * 批量持久化退款场景下的分账数据
+         * 批量持久化退款事实明细数据
          */
-        boolean batchSaveOrderRefundSplitSub(List<ReconOrderRefundSplitSubDO> refundSplitSubDOs);
+        boolean batchSaveOrderRefundDetail(List<ReconOrderRefundDetailDO> refundDetailDOs);
+
+        /**
+         * 批量保存商户维度结算统计
+         *
+         * @param settlementDOs 商户结算列表
+         * @return 是否成功
+         */
+        boolean batchSaveOrderMerchantSettlement(List<ReconOrderMerchantSettlementDO> settlementDOs);
+
+        /**
+         * 根据主订单号查询关联的所有商户维度结算统计
+         *
+         * @param orderNo 订单号
+         * @return 商户结算列表
+         */
+        List<ReconOrderMerchantSettlementDO> getOrderMerchantSettlementByOrderNo(String orderNo);
 
         /**
          * 更新退款对账逻辑
@@ -179,9 +210,14 @@ public interface ReconRepository {
                         LocalDateTime refundTime);
 
         /**
-         * 查询退款分证明细
+         * 更新退款对账逻辑 (DO 对象方式)
          */
-        List<ReconOrderRefundSplitSubDO> getOrderRefundSplitSubByOrderNo(String orderNo);
+        boolean updateReconRefundStatus(ReconOrderMainDO orderMainDO);
+
+        /**
+         * 查询退款事实明细
+         */
+        List<ReconOrderRefundDetailDO> getOrderRefundDetailByOrderNo(String orderNo);
 
         /**
          * 保存对账规则配置

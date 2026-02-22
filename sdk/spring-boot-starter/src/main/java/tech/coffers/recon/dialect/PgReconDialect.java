@@ -26,8 +26,8 @@ public class PgReconDialect implements ReconDatabaseDialect {
                 + "pay_fee = EXCLUDED.pay_fee, pay_fee_fen = EXCLUDED.pay_fee_fen, "
                 + "split_total_amount = EXCLUDED.split_total_amount, split_total_amount_fen = EXCLUDED.split_total_amount_fen, "
                 + "pay_status = EXCLUDED.pay_status, split_status = EXCLUDED.split_status, "
-                + "notify_status = EXCLUDED.notify_status, notify_result = EXCLUDED.notify_result, "
-                + "recon_status = EXCLUDED.recon_status, update_time = EXCLUDED.update_time";
+                + "notify_status = EXCLUDED.notify_status, "
+                + "notify_result = EXCLUDED.notify_result, recon_status = EXCLUDED.recon_status, update_time = EXCLUDED.update_time";
     }
 
     /**
@@ -36,11 +36,13 @@ public class PgReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, sub_order_no, merchant_id, merchant_order_no, split_amount, split_amount_fen, notify_status, notify_result, create_time, update_time) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + " (order_no, sub_order_no, merchant_id, merchant_order_no, split_amount, split_amount_fen, arrival_amount, arrival_amount_fen, split_fee, split_fee_fen, notify_status, notify_result, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON CONFLICT (order_no, merchant_id, sub_order_no) DO UPDATE SET "
                 + "merchant_order_no = EXCLUDED.merchant_order_no, "
                 + "split_amount = EXCLUDED.split_amount, split_amount_fen = EXCLUDED.split_amount_fen, "
+                + "arrival_amount = EXCLUDED.arrival_amount, arrival_amount_fen = EXCLUDED.arrival_amount_fen, "
+                + "split_fee = EXCLUDED.split_fee, split_fee_fen = EXCLUDED.split_fee_fen, "
                 + "notify_status = EXCLUDED.notify_status, notify_result = EXCLUDED.notify_result, "
                 + "update_time = EXCLUDED.update_time";
     }

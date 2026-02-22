@@ -1,21 +1,20 @@
 package tech.coffers.recon.entity;
 
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 对账订单退款分账子记录
+ * 对账订单退款分账明细 (事实层)
  * <p>
- * 存储订单的退款分账信息
+ * 存储订单的退款分账实测信息。
  * </p>
  *
  * @author Ryan
- * @since 1.0.0
+ * @since 1.1.0
  */
 @Data
-public class ReconOrderRefundSplitSubDO {
+public class ReconOrderRefundDetailDO {
 
     /**
      * 自增主键
@@ -31,16 +30,6 @@ public class ReconOrderRefundSplitSubDO {
      * 被退款扣减的商户ID
      */
     private String merchantId;
-
-    /**
-     * 商户原始订单号
-     */
-    private String merchantOrderNo;
-
-    /**
-     * 子订单号 (退款分账明细唯一标识)
-     */
-    private String subOrderNo;
 
     /**
      * 本次退至商户侧的分账金额 (元)
@@ -74,10 +63,9 @@ public class ReconOrderRefundSplitSubDO {
     public void setRefundSplitAmountFen(Long refundSplitAmountFen) {
         this.refundSplitAmountFen = refundSplitAmountFen;
         if (refundSplitAmountFen != null) {
-            this.refundSplitAmount = new BigDecimal(refundSplitAmountFen).divide(new BigDecimal("100"));
+            this.refundSplitAmount = BigDecimal.valueOf(refundSplitAmountFen).movePointLeft(2);
         } else {
             this.refundSplitAmount = null;
         }
     }
-
 }

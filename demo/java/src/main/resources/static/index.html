@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy Recon | 对账可视化仪表盘</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            background-attachment: fixed;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+        }
+
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-1 {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid #22c55e;
+        }
+
+        /* SUCCESS */
+        .status-2 {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid #ef4444;
+        }
+
+        /* FAILURE */
+        .status-0 {
+            background: rgba(234, 179, 8, 0.2);
+            color: #facc15;
+            border: 1px solid #eab308;
+        }
+
+        /* PENDING */
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="p-6">
+    <div id="app" v-cloak>
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10 px-4">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">Easy Recon <span
+                        class="text-yellow-400 font-light">Dashboard</span></h1>
+                <p class="text-sm opacity-60 mt-1">三级架构实时核账实况（{{ stats.date }}）</p>
+            </div>
+            <div class="flex gap-4 items-center">
+                <button @click="openGenerateModal"
+                    class="glass-panel px-4 py-2 text-sm hover:bg-white/20 transition bg-blue-500/20 border-blue-400/30">生成演示数据</button>
+                <button @click="refreshData"
+                    class="glass-panel px-4 py-2 text-sm hover:bg-white/20 transition">刷新</button>
+                <div class="glass-panel px-4 py-2 text-sm">SDK v1.1.0</div>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+            <div class="glass-panel p-6">
+                <div class="text-xs uppercase opacity-50 mb-2">今日总笔数</div>
+                <div class="text-4xl font-bold">{{ stats.total }}</div>
+            </div>
+            <div class="glass-panel p-6 border-l-4 border-green-500">
+                <div class="text-xs uppercase opacity-50 mb-2">核账成功</div>
+                <div class="text-4xl font-bold text-green-400">{{ stats.success }}</div>
+            </div>
+            <div class="glass-panel p-6 border-l-4 border-red-500">
+                <div class="text-xs uppercase opacity-50 mb-2">对账异常</div>
+                <div class="text-4xl font-bold text-red-400">{{ stats.failure || stats.exceptions }}</div>
+            </div>
+            <div class="glass-panel p-6 border-l-4 border-yellow-500">
+                <div class="text-xs uppercase opacity-50 mb-2">待处理</div>
+                <div class="text-4xl font-bold text-yellow-400">{{ stats.pending }}</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Order List Area -->
+            <div class="lg:col-span-2 glass-panel overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-white/10 flex justify-between items-center">
+                    <h2 class="font-semibold">对账订单列表</h2>
+                    <div class="text-xs opacity-50">每过几秒自动同步数据</div>
+                </div>
+                <div class="overflow-x-auto flex-grow">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-white/5 uppercase text-xs opacity-60">
+                            <tr>
+                                <th class="p-4">订单号</th>
+                                <th class="p-4">支付金额</th>
+                                <th class="p-4">对账状态</th>
+                                <th class="p-4">分账状态</th>
+                                <th class="p-4">时间</th>
+                                <th class="p-4">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="order in orders" :key="order.orderNo"
+                                class="border-b border-white/5 hover:bg-white/5 transition">
+                                <td class="p-4 font-mono font-medium">{{ order.orderNo }}</td>
+                                <td class="p-4">{{ formatAmount(order.payAmountFen) }}</td>
+                                <td class="p-4">
+                                    <span :class="'status-badge status-' + order.reconStatus">
+                                        {{ getStatusText(order.reconStatus) }}
+                                    </span>
+                                </td>
+                                <td class="p-4 opacity-70">{{ order.splitStatus === 1 ? '已完成' : '待处理' }}</td>
+                                <td class="p-4 text-xs opacity-50">{{ formatDate(order.createTime) }}</td>
+                                <td class="p-4">
+                                    <button @click="viewDetail(order.orderNo)"
+                                        class="text-blue-400 hover:text-blue-300">查看详情</button>
+                                </td>
+                            </tr>
+                            <tr v-if="orders.length === 0">
+                                <td colspan="6" class="p-20 text-center opacity-40">暂无今日订单数据，快运行 Demo 进行对账吧</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="p-4 border-t border-white/10 flex justify-between items-center text-sm bg-black/20">
+                    <div class="opacity-50">
+                        每页 {{ size }} 条，共 {{ total }} 条 (第 {{ page }} / {{ Math.ceil(total / size) || 1 }} 页)
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="changePage(page - 1)" :disabled="page <= 1"
+                            class="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 transition">上一页</button>
+                        <button @click="changePage(page + 1)" :disabled="page * size >= total"
+                            class="px-3 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 transition">下一页</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exception Feed Area -->
+            <div class="glass-panel p-6 flex flex-col">
+                <h2 class="font-semibold mb-6">实时异常/告警追溯</h2>
+                <div class="space-y-4 overflow-y-auto max-h-[500px] pr-2">
+                    <div v-for="err in exceptions" :key="err.id"
+                        class="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-red-400 font-mono">{{ err.orderNo }}</span>
+                            <span class="text-[10px] opacity-40">{{ formatDate(err.createTime) }}</span>
+                        </div>
+                        <p class="text-xs opacity-80 leading-relaxed">{{ err.exceptionMsg }}</p>
+                    </div>
+                    <div v-if="exceptions.length === 0" class="text-center py-20 opacity-40 text-sm">
+                        暂无异常记录
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Modal -->
+        <div v-if="selectedOrder"
+            class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <div class="glass-panel w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div
+                    class="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-gray-900/50 backdrop-blur-md">
+                    <div>
+                        <h3 class="text-xl font-bold">订单透视详情</h3>
+                        <p class="text-xs opacity-50 font-mono mt-1">{{ selectedOrder.main.orderNo }}</p>
+                    </div>
+                    <button @click="selectedOrder = null" class="text-2xl opacity-50 hover:opacity-100">&times;</button>
+                </div>
+
+                <div class="p-8 space-y-10">
+                    <!-- Layer 1: Main Order -->
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-widest text-blue-400 mb-4">第一级：主订单核心</h4>
+                        <div class="grid grid-cols-3 gap-6">
+                            <div class="bg-white/5 p-4 rounded-lg">
+                                <div class="text-[10px] opacity-40 mb-1 uppercase">订单状态</div>
+                                <div class="font-semibold">{{ getStatusText(selectedOrder.main.reconStatus) }}</div>
+                            </div>
+                            <div class="bg-white/5 p-4 rounded-lg">
+                                <div class="text-[10px] opacity-40 mb-1 uppercase">实付金额 / 支付手续费</div>
+                                <div class="font-semibold text-xl">¥{{ formatAmount(selectedOrder.main.payAmountFen) }}
+                                    / <span class="text-red-400 text-sm">-¥{{ formatAmount(selectedOrder.main.payFeeFen)
+                                        }}</span></div>
+                            </div>
+                            <div class="bg-white/5 p-4 rounded-lg">
+                                <div class="text-[10px] opacity-40 mb-1 uppercase">平台毛利 (预期)</div>
+                                <div class="font-bold text-xl text-yellow-400">¥{{
+                                    formatAmount(selectedOrder.main.platformIncomeFen) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2: Intents (Sub Orders) -->
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-widest text-purple-400 mb-4">第二级：业务意图 (Sub
+                            Orders)</h4>
+                        <div class="overflow-hidden border border-white/10 rounded-lg">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-white/5 opacity-50">
+                                    <tr>
+                                        <th class="p-3">商户号</th>
+                                        <th class="p-3">商户单号</th>
+                                        <th class="p-3">交易金额</th>
+                                        <th class="p-3">分账比例</th>
+                                        <th class="p-3">应分金额 (意图)</th>
+                                        <th class="p-3">应扣手续费</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="sub in selectedOrder.subs" class="border-t border-white/5 font-mono">
+                                        <td class="p-3">{{ sub.merchantId }}</td>
+                                        <td class="p-3 text-blue-300">{{ sub.merchantOrderNo }}</td>
+                                        <td class="p-3">¥{{ formatAmount(sub.orderAmountFen) }}</td>
+                                        <td class="p-3 text-blue-400 font-bold">{{ formatRatio(sub.splitRatio) }}</td>
+                                        <td class="p-3 font-bold text-green-400">¥{{ formatAmount(sub.splitAmountFen) }}
+                                        </td>
+                                        <td class="p-3 opacity-60">¥{{ formatAmount(sub.feeFen) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Layer 3: Facts (Settlement Details) -->
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-widest text-green-400 mb-4">第三级：清算事实 (Facts /
+                            Settlements)</h4>
+                        <div v-if="selectedOrder.splitFacts.length > 0"
+                            class="overflow-hidden border border-white/10 rounded-lg">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-white/5 opacity-50">
+                                    <tr>
+                                        <th class="p-3">商户号</th>
+                                        <th class="p-3">智能推断场景</th>
+                                        <th class="p-3">实测清算金额</th>
+                                        <th class="p-3">实测商户到账</th>
+                                        <th class="p-3">实扣手续费</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="fact in selectedOrder.splitFacts"
+                                        class="border-t border-white/5 font-mono">
+                                        <td class="p-3">{{ fact.merchantId }}</td>
+                                        <td class="p-3 text-yellow-400 italic">{{ fact.settlementType === 1 ? '平台代收' :
+                                            (fact.settlementType === 2 ? '全额到商户' : '空中分账') }}</td>
+                                        <td class="p-3 font-bold">¥{{ formatAmount(fact.splitAmountFen) }}</td>
+                                        <td class="p-3 text-green-400">¥{{ formatAmount(fact.arrivalAmountFen) }}</td>
+                                        <td class="p-3 opacity-60">¥{{ formatAmount(fact.splitFeeFen) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-else
+                            class="text-sm p-10 text-center opacity-40 bg-white/5 rounded-lg border border-dashed border-white/20">
+                            无分账事实记录 (通常发生在“平台代收”模式或对账未达终态)
+                        </div>
+                    </div>
+
+                    <!-- Exception Record (If any) -->
+                    <div v-if="selectedOrder.exceptions.length > 0">
+                        <h4 class="text-xs font-bold uppercase tracking-widest text-red-500 mb-4">链路异常追踪</h4>
+                        <div class="space-y-3">
+                            <div v-for="ex in selectedOrder.exceptions"
+                                class="p-4 bg-red-500/10 border border-red-500/20 text-red-200 text-xs rounded-lg">
+                                [{{ formatDate(ex.createTime) }}] {{ ex.exceptionMsg }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config Modal -->
+        <div v-if="showConfigModal" @click.self="showConfigModal = false"
+            class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div class="glass-panel p-6 w-[500px] space-y-4 relative bg-[#1e293b]">
+                <h3 class="text-lg font-medium text-white">生成配置</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">演示场景</label>
+                        <select v-model="config.type"
+                            class="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white outline-none focus:border-blue-500/50">
+                            <option value="" class="text-slate-900 bg-white">全部场景 (All)</option>
+                            <option value="inference" class="text-slate-900 bg-white">场景1: 基础推断 (Inference)</option>
+                            <option value="platform" class="text-slate-900 bg-white">场景2: 平台代收 (Platform)</option>
+                            <option value="air_split" class="text-slate-900 bg-white">场景3: 空中分账 (Air Split)</option>
+                            <option value="refund" class="text-slate-900 bg-white">场景4: 退款流程 (Refund)</option>
+                            <option value="async" class="text-slate-900 bg-white">场景5: 异步流程 (Async)</option>
+                            <option value="exception" class="text-slate-900 bg-white">场景6: 异常处理 (Exception)</option>
+                            <option value="direct" class="text-slate-900 bg-white">场景7: 全额到账商户 (Direct to Merchant)
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Dynamic Fields based on Scenario -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">支付金额 (元)</label>
+                            <input v-model="config.payAmount" type="number"
+                                class="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                                placeholder="100.00">
+                        </div>
+
+                        <div class="col-span-2">
+                            <label class="block text-sm text-gray-400 mb-1">商户号</label>
+                            <input v-model="config.merchantIds" type="text"
+                                class="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                                placeholder="MCH-CUSTOM">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm text-gray-400 mb-1">订单前缀</label>
+                            <input v-model="config.orderPrefix" type="text"
+                                class="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                                placeholder="ORD-CUSTOM">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm text-gray-400 mb-1">分账比例 (基点)</label>
+                            <input v-model="config.splitRatio" type="number"
+                                class="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                                placeholder="10000">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm text-gray-400 mb-1">每个商户子订单数量</label>
+                            <input v-model="config.splitCount" type="number" min="1" max="100"
+                                class="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                                placeholder="1">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button @click="showConfigModal = false"
+                            class="px-4 py-2 rounded text-gray-400 hover:text-white transition">取消</button>
+                        <button @click="confirmGenerate"
+                            class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white transition shadow-lg shadow-blue-500/20">确认生成</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const { createApp, ref, onMounted } = Vue;
+
+            createApp({
+                setup() {
+                    const stats = ref({ total: 0, success: 0, failure: 0, pending: 0, exceptions: 0, date: '--' });
+                    const orders = ref([]);
+                    const total = ref(0);
+                    const page = ref(1);
+                    const size = ref(10);
+                    const exceptions = ref([]);
+                    const selectedOrder = ref(null);
+
+                    // Config Modal State
+                    const showConfigModal = ref(false);
+                    const config = ref({
+                        type: '',
+                        payAmount: 100.00,
+                        merchantIds: 'MCH-DEMO',
+                        orderPrefix: 'ORD-DEMO',
+                        splitRatio: 10000
+                    });
+
+                    const fetchData = async () => {
+                        try {
+                            const [statsRes, ordersRes, exceptionsRes] = await Promise.all([
+                                axios.get('/api/recon/stats'),
+                                axios.get(`/api/recon/orders?page=${page.value}&size=${size.value}`),
+                                axios.get('/api/recon/recent-exceptions')
+                            ]);
+                            stats.value = statsRes.data;
+                            orders.value = ordersRes.data.list || [];
+                            total.value = ordersRes.data.total || 0;
+                            exceptions.value = exceptionsRes.data || [];
+                        } catch (e) {
+                            console.error("加载数据失败", e);
+                        }
+                    };
+
+                    const viewDetail = async (orderNo) => {
+                        try {
+                            const res = await axios.get(`/api/recon/orders/${orderNo}/detail`);
+                            selectedOrder.value = res.data;
+                        } catch (e) {
+                            alert("详情加载失败");
+                        }
+                    };
+
+                    const formatAmount = (fen) => {
+                        if (fen === null || fen === undefined) return "0.00";
+                        return (fen / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2 });
+                    };
+
+                    const formatRatio = (bp) => {
+                        if (bp === null || bp === undefined) return "-";
+                        return (bp / 100).toFixed(2) + "%";
+                    };
+
+                    const formatDate = (dateStr) => {
+                        if (!dateStr) return '';
+                        return dateStr.replace('T', ' ').substring(0, 19);
+                    };
+
+                    const getStatusText = (status) => {
+                        const map = { 0: '处理中', 1: '核账成功', 2: '对账异常' };
+                        return map[status] || '未知';
+                    };
+
+                    const refreshData = () => fetchData();
+
+                    const changePage = (newPage) => {
+                        if (newPage < 1) return;
+                        page.value = newPage;
+                        fetchData();
+                    };
+
+                    // Open Modal
+                    const openGenerateModal = () => {
+                        showConfigModal.value = true;
+                    };
+
+                    // Execute Generation
+                    const confirmGenerate = async () => {
+                        try {
+                            await axios.post('/api/recon/generate-demo-data', config.value);
+                            alert("演示数据生成指令已发送");
+                            showConfigModal.value = false;
+                            // 延迟 1 秒后刷新
+                            setTimeout(fetchData, 1000);
+                        } catch (e) {
+                            alert("触发生成失败: " + e.message);
+                        }
+                    };
+
+                    onMounted(() => {
+                        fetchData();
+                        // 每 10 秒轮询一次
+                        setInterval(fetchData, 10000);
+                    });
+
+                    return {
+                        stats, orders, total, page, size, exceptions, selectedOrder,
+                        viewDetail, formatAmount, formatRatio, formatDate, getStatusText, refreshData, changePage,
+                        showConfigModal, config, openGenerateModal, confirmGenerate
+                    };
+                }
+            }).mount('#app');
+        </script>
+</body>
+
+</html>

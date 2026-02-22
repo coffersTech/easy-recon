@@ -1,3 +1,6 @@
+server:
+  port: 9090
+
 spring:
   flyway:
     enabled: true
@@ -9,16 +12,22 @@ spring:
     # username: root
     # password: your_password
 
-    # PostgreSQL Configuration Example
-    url: jdbc:postgresql://localhost:5432/easy_recon_demo
-    driverClassName: org.postgresql.Driver
-    username: postgresql
-    password: postgresql
+    # H2 Configuration for Demo
+    # url: jdbc:h2:mem:easy_recon;DB_CLOSE_DELAY=-1;MODE=MySQL
+    # driverClassName: org.h2.Driver
+    # username: sa
+    # password: 
+
+    # PostgreSQL Configuration Example (Disabled for now)
+     url: jdbc:postgresql://localhost:5432/easy_recon_demo
+     driverClassName: org.postgresql.Driver
+     username: postgresql
+     password: postgresql
     
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-      ddl-auto: none
+  # jpa:
+  #   database-platform: org.hibernate.dialect.PostgreSQLDialect
+  #   hibernate:
+  #     ddl-auto: update
 
 easy-recon:
   enabled: true

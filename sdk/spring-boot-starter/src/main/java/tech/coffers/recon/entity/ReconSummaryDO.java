@@ -42,4 +42,27 @@ public class ReconSummaryDO {
      * 当日交易成功的总金额累计 (元)
      */
     private BigDecimal totalAmount;
+
+    /**
+     * 当日交易成功的总金额累计 (分)
+     */
+    private Long totalAmountFen;
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+        if (totalAmount != null) {
+            this.totalAmountFen = totalAmount.multiply(new BigDecimal("100")).longValue();
+        } else {
+            this.totalAmountFen = null;
+        }
+    }
+
+    public void setTotalAmountFen(Long totalAmountFen) {
+        this.totalAmountFen = totalAmountFen;
+        if (totalAmountFen != null) {
+            this.totalAmount = BigDecimal.valueOf(totalAmountFen).movePointLeft(2);
+        } else {
+            this.totalAmount = null;
+        }
+    }
 }

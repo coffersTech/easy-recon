@@ -89,80 +89,159 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
-    /**
-     * 保存单条分账子记录
-     * <p>
-     * 适用于分次或动态增加分账子项的场景。
-     *
-     * @param splitSubDO 分账子明细
-     * @return 是否成功
-     */
     @Override
-    public boolean saveOrderSplitSub(ReconOrderSplitSubDO splitSubDO) {
-        try {
-            String tableName = properties.getTablePrefix() + "order_split_sub";
-            String sql = dialectFactory.getDialect().getInsertOrderSplitSubSql(tableName);
-            int rows = jdbcTemplate.update(sql, ps -> {
-                ps.setString(1, splitSubDO.getOrderNo());
-                ps.setString(2, splitSubDO.getSubOrderNo());
-                ps.setString(3, splitSubDO.getMerchantId());
-                ps.setString(4, splitSubDO.getMerchantOrderNo());
-                ps.setBigDecimal(5, splitSubDO.getSplitAmount());
-                ps.setObject(6, splitSubDO.getSplitAmountFen());
-                ps.setInt(7, splitSubDO.getNotifyStatus() != null ? splitSubDO.getNotifyStatus() : 2);
-                ps.setString(8, splitSubDO.getNotifyResult());
-                ps.setObject(9, splitSubDO.getCreateTime());
-                ps.setObject(10, splitSubDO.getUpdateTime());
-            });
-            return rows > 0;
-        } catch (Exception e) {
-            log.error("保存单条分账子明细失败", e);
-            return false;
-        }
-    }
-
-    /**
-     * 批量保存分账子记录
-     * <p>
-     * 使用 BatchUpdate 提升高性能批量插入能力。
-     *
-     * @param splitSubDOs 子明细列表
-     * @return 批量执行结果
-     */
-    @Override
-    public boolean batchSaveOrderSplitSub(List<ReconOrderSplitSubDO> splitSubDOs) {
-        if (splitSubDOs == null || splitSubDOs.isEmpty()) {
+    public boolean batchSaveOrderSub(List<ReconOrderSubDO> orderSubDOs) {
+        if (orderSubDOs == null || orderSubDOs.isEmpty()) {
             return true;
         }
-
         try {
-            String tableName = properties.getTablePrefix() + "order_split_sub";
-            String sql = dialectFactory.getDialect().getInsertOrderSplitSubSql(tableName);
-
+            String tableName = properties.getTablePrefix() + "order_sub";
+            String sql = "INSERT INTO " + tableName
+                    + " (order_no, sub_order_no, merchant_order_no, merchant_id, order_amount, order_amount_fen, split_amount, split_amount_fen, fee, fee_fen, split_ratio, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps, int i) throws SQLException {
-                    ReconOrderSplitSubDO subDO = splitSubDOs.get(i);
+                    ReconOrderSubDO subDO = orderSubDOs.get(i);
                     ps.setString(1, subDO.getOrderNo());
                     ps.setString(2, subDO.getSubOrderNo());
-                    ps.setString(3, subDO.getMerchantId());
-                    ps.setString(4, subDO.getMerchantOrderNo());
-                    ps.setBigDecimal(5, subDO.getSplitAmount());
-                    ps.setObject(6, subDO.getSplitAmountFen());
-                    ps.setInt(7, subDO.getNotifyStatus() != null ? subDO.getNotifyStatus() : 2);
-                    ps.setString(8, subDO.getNotifyResult());
-                    ps.setObject(9, subDO.getCreateTime());
-                    ps.setObject(10, subDO.getUpdateTime());
+                    ps.setString(3, subDO.getMerchantOrderNo());
+                    ps.setString(4, subDO.getMerchantId());
+                    ps.setBigDecimal(5, subDO.getOrderAmount());
+                    ps.setObject(6, subDO.getOrderAmountFen());
+                    ps.setBigDecimal(7, subDO.getSplitAmount());
+                    ps.setObject(8, subDO.getSplitAmountFen());
+                    ps.setBigDecimal(9, subDO.getFee());
+                    ps.setObject(10, subDO.getFeeFen());
+                    ps.setObject(11, subDO.getSplitRatio());
+                    ps.setObject(12, subDO.getCreateTime());
+                    ps.setObject(13, subDO.getUpdateTime());
                 }
 
                 @Override
                 public int getBatchSize() {
-                    return splitSubDOs.size();
+                    return orderSubDOs.size();
                 }
             });
             return true;
         } catch (Exception e) {
-            log.error("批量保存分账子记录失败", e);
+            log.error("批量保存业务子订单失败", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean batchSaveOrderMerchantSettlement(List<ReconOrderMerchantSettlementDO> settlementDOs) {
+        if (settlementDOs == null || settlementDOs.isEmpty()) {
+            return true;
+        }
+        try {
+            String tableName = properties.getTablePrefix() + "order_merchant_settlement";
+            String sql = "INSERT INTO " + tableName
+                    + " (order_no, merchant_id, settlement_type, order_amount_fen, split_amount_fen, split_fee_fen, arrival_amount_fen, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    ReconOrderMerchantSettlementDO settleDO = settlementDOs.get(i);
+                    ps.setString(1, settleDO.getOrderNo());
+                    ps.setString(2, settleDO.getMerchantId());
+                    ps.setObject(3,
+                            settleDO.getSettlementType() != null ? settleDO.getSettlementType().getCode() : null);
+                    ps.setLong(4, settleDO.getOrderAmountFen() != null ? settleDO.getOrderAmountFen() : 0L);
+                    ps.setLong(5, settleDO.getSplitAmountFen() != null ? settleDO.getSplitAmountFen() : 0L);
+                    ps.setLong(6, settleDO.getSplitFeeFen() != null ? settleDO.getSplitFeeFen() : 0L);
+                    ps.setLong(7, settleDO.getArrivalAmountFen() != null ? settleDO.getArrivalAmountFen() : 0L);
+                    ps.setObject(8, settleDO.getCreateTime() != null ? settleDO.getCreateTime() : LocalDateTime.now());
+                    ps.setObject(9, settleDO.getUpdateTime() != null ? settleDO.getUpdateTime() : LocalDateTime.now());
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return settlementDOs.size();
+                }
+            });
+            return true;
+        } catch (Exception e) {
+            log.error("批量保存商户维度结算统计失败", e);
+            return false;
+        }
+    }
+
+    @Override
+    public List<ReconOrderMerchantSettlementDO> getOrderMerchantSettlementByOrderNo(String orderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_merchant_settlement";
+            String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
+            return jdbcTemplate.query(sql, new MerchantSettlementRowMapper(), orderNo);
+        } catch (Exception e) {
+            log.error("查询商户维度结算统计失败，订单号: {}", orderNo, e);
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public boolean saveOrderSplitDetail(ReconOrderSplitDetailDO splitDetailDO) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_split_detail";
+            String sql = "INSERT INTO " + tableName
+                    + " (order_no, merchant_id, split_amount, split_amount_fen, arrival_amount, arrival_amount_fen, split_fee, split_fee_fen, notify_status, notify_result, create_time, update_time, settlement_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            int rows = jdbcTemplate.update(sql, ps -> {
+                ps.setString(1, splitDetailDO.getOrderNo());
+                ps.setString(2, splitDetailDO.getMerchantId());
+                ps.setBigDecimal(3, splitDetailDO.getSplitAmount());
+                ps.setObject(4, splitDetailDO.getSplitAmountFen());
+                ps.setBigDecimal(5, splitDetailDO.getArrivalAmount());
+                ps.setObject(6, splitDetailDO.getArrivalAmountFen());
+                ps.setBigDecimal(7, splitDetailDO.getSplitFee());
+                ps.setObject(8, splitDetailDO.getSplitFeeFen());
+                ps.setInt(9, splitDetailDO.getNotifyStatus() != null ? splitDetailDO.getNotifyStatus() : 2);
+                ps.setString(10, splitDetailDO.getNotifyResult());
+                ps.setObject(11, splitDetailDO.getCreateTime());
+                ps.setObject(12, splitDetailDO.getUpdateTime());
+                ps.setInt(13, splitDetailDO.getSettlementType() != null ? splitDetailDO.getSettlementType() : 1);
+            });
+            return rows > 0;
+        } catch (Exception e) {
+            log.error("保存分账事实明细失败", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean batchSaveOrderSplitDetail(List<ReconOrderSplitDetailDO> splitDetailDOs) {
+        if (splitDetailDOs == null || splitDetailDOs.isEmpty()) {
+            return true;
+        }
+        try {
+            String tableName = properties.getTablePrefix() + "order_split_detail";
+            String sql = "INSERT INTO " + tableName
+                    + " (order_no, merchant_id, split_amount, split_amount_fen, arrival_amount, arrival_amount_fen, split_fee, split_fee_fen, notify_status, notify_result, create_time, update_time, settlement_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    ReconOrderSplitDetailDO subDO = splitDetailDOs.get(i);
+                    ps.setString(1, subDO.getOrderNo());
+                    ps.setString(2, subDO.getMerchantId());
+                    ps.setBigDecimal(3, subDO.getSplitAmount());
+                    ps.setObject(4, subDO.getSplitAmountFen());
+                    ps.setBigDecimal(5, subDO.getArrivalAmount());
+                    ps.setObject(6, subDO.getArrivalAmountFen());
+                    ps.setBigDecimal(7, subDO.getSplitFee());
+                    ps.setObject(8, subDO.getSplitFeeFen());
+                    ps.setInt(9, subDO.getNotifyStatus() != null ? subDO.getNotifyStatus() : 2);
+                    ps.setString(10, subDO.getNotifyResult());
+                    ps.setObject(11, subDO.getCreateTime());
+                    ps.setObject(12, subDO.getUpdateTime());
+                    ps.setInt(13, subDO.getSettlementType() != null ? subDO.getSettlementType() : 1);
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return splitDetailDOs.size();
+                }
+            });
+            return true;
+        } catch (Exception e) {
+            log.error("批量保存分账事实明细失败", e);
             return false;
         }
     }
@@ -174,13 +253,25 @@ public class JdbcReconRepository implements ReconRepository {
      * @return 子记录列表
      */
     @Override
-    public List<ReconOrderSplitSubDO> getOrderSplitSubByOrderNo(String orderNo) {
+    public List<ReconOrderSplitDetailDO> getOrderSplitDetailByOrderNo(String orderNo) {
         try {
-            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String tableName = properties.getTablePrefix() + "order_split_detail";
             String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
-            return jdbcTemplate.query(sql, new OrderSplitSubRowMapper(), orderNo);
+            return jdbcTemplate.query(sql, new OrderSplitDetailRowMapper(), orderNo);
         } catch (Exception e) {
-            log.error("查询分账子记录失败，订单号: {}", orderNo, e);
+            log.error("查询分账事实明细失败，订单号: {}", orderNo, e);
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public List<ReconOrderSubDO> getOrderSubByOrderNo(String orderNo) {
+        try {
+            String tableName = properties.getTablePrefix() + "order_sub";
+            String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
+            return jdbcTemplate.query(sql, new OrderSubRowMapper(), orderNo);
+        } catch (Exception e) {
+            log.error("查询业务子订单失败，订单号: {}", orderNo, e);
             return Collections.emptyList();
         }
     }
@@ -315,28 +406,16 @@ public class JdbcReconRepository implements ReconRepository {
     }
 
     @Override
-    public boolean updateSplitSubNotifyStatus(String orderNo, String merchantId, String subOrderNo, int notifyStatus,
+    public boolean updateSplitDetailNotifyStatus(String orderNo, String merchantId, int notifyStatus,
             String notifyResult) {
         try {
-            String tableName = properties.getTablePrefix() + "order_split_sub";
-            StringBuilder sql = new StringBuilder("UPDATE " + tableName
-                    + " SET notify_status = ?, notify_result = ?, update_time = ? WHERE order_no = ? AND merchant_id = ?");
-            List<Object> params = new ArrayList<>();
-            params.add(notifyStatus);
-            params.add(notifyResult);
-            params.add(LocalDateTime.now());
-            params.add(orderNo);
-            params.add(merchantId);
-
-            if (subOrderNo != null) {
-                sql.append(" AND sub_order_no = ?");
-                params.add(subOrderNo);
-            }
-
-            int rows = jdbcTemplate.update(sql.toString(), params.toArray());
+            String tableName = properties.getTablePrefix() + "order_split_detail";
+            String sql = "UPDATE " + tableName
+                    + " SET notify_status = ?, notify_result = ?, update_time = ? WHERE order_no = ? AND merchant_id = ?";
+            int rows = jdbcTemplate.update(sql, notifyStatus, notifyResult, LocalDateTime.now(), orderNo, merchantId);
             return rows > 0;
         } catch (Exception e) {
-            log.error("更新分账子表通知状态失败", e);
+            log.error("更新分账明细通知状态失败", e);
             return false;
         }
     }
@@ -344,7 +423,7 @@ public class JdbcReconRepository implements ReconRepository {
     @Override
     public boolean isAllSplitSubNotified(String orderNo) {
         try {
-            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String tableName = properties.getTablePrefix() + "order_split_detail";
             // 检查是否存在 notify_status != 1 (成功) 的记录
             String sql = "SELECT count(*) FROM " + tableName + " WHERE order_no = ? AND notify_status != 1";
             Integer count = jdbcTemplate.queryForObject(sql, Integer.class, orderNo);
@@ -358,7 +437,7 @@ public class JdbcReconRepository implements ReconRepository {
     @Override
     public String findOrderNoBySub(String merchantId, String subOrderNo) {
         try {
-            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String tableName = properties.getTablePrefix() + "order_sub";
             String sql = "SELECT order_no FROM " + tableName + " WHERE merchant_id = ? AND sub_order_no = ? LIMIT 1";
             return jdbcTemplate.queryForObject(sql, String.class, merchantId, subOrderNo);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
@@ -371,15 +450,17 @@ public class JdbcReconRepository implements ReconRepository {
 
     @Override
     public String findOrderNoByMerchantOrder(String merchantId, String merchantOrderNo) {
+        // 由于三级架构下，支付事实层已移除 merchantOrderNo，此处改为通过业务子单表查询（如果业务层存了的话）
+        // 或者保留此方法支持反查，前提是 order_sub 表存了 sub_order_no
         try {
-            String tableName = properties.getTablePrefix() + "order_split_sub";
+            String tableName = properties.getTablePrefix() + "order_sub";
             String sql = "SELECT order_no FROM " + tableName
                     + " WHERE merchant_id = ? AND merchant_order_no = ? LIMIT 1";
             return jdbcTemplate.queryForObject(sql, String.class, merchantId, merchantOrderNo);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return null;
         } catch (Exception e) {
-            log.error("查询主订单号失败，商户号: {}，商户订单号: {}", merchantId, merchantOrderNo, e);
+            log.error("查询主订单号失败", e);
             return null;
         }
     }
@@ -455,6 +536,7 @@ public class JdbcReconRepository implements ReconRepository {
                     hasWhere = true;
                 }
                 sql.append(" DATE(create_time) >= CAST(? AS DATE)");
+                params.add(startDate);
             }
 
             if (endDate != null && !endDate.isEmpty()) {
@@ -465,6 +547,7 @@ public class JdbcReconRepository implements ReconRepository {
                     hasWhere = true;
                 }
                 sql.append(" DATE(create_time) <= CAST(? AS DATE)");
+                params.add(endDate);
             }
 
             if (exceptionStep != null) {
@@ -472,8 +555,10 @@ public class JdbcReconRepository implements ReconRepository {
                     sql.append(" AND");
                 } else {
                     sql.append(" WHERE");
+                    hasWhere = true;
                 }
                 sql.append(" exception_step = ?");
+                params.add(exceptionStep);
             }
 
             // 添加排序和分页
@@ -539,37 +624,36 @@ public class JdbcReconRepository implements ReconRepository {
     // ==================== 退款操作 ====================
 
     @Override
-    public boolean batchSaveOrderRefundSplitSub(List<ReconOrderRefundSplitSubDO> refundSplitSubDOs) {
-        if (refundSplitSubDOs == null || refundSplitSubDOs.isEmpty()) {
+    public boolean batchSaveOrderRefundDetail(List<ReconOrderRefundDetailDO> refundDetailDOs) {
+        if (refundDetailDOs == null || refundDetailDOs.isEmpty()) {
             return true;
         }
 
         try {
-            String tableName = properties.getTablePrefix() + "order_refund_split_sub";
-            String sql = dialectFactory.getDialect().getInsertOrderRefundSplitSubSql(tableName);
+            String tableName = properties.getTablePrefix() + "order_refund_detail";
+            String sql = "INSERT INTO " + tableName
+                    + " (order_no, merchant_id, refund_split_amount, refund_split_amount_fen, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)";
 
             jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps, int i) throws SQLException {
-                    ReconOrderRefundSplitSubDO subDO = refundSplitSubDOs.get(i);
+                    ReconOrderRefundDetailDO subDO = refundDetailDOs.get(i);
                     ps.setString(1, subDO.getOrderNo());
-                    ps.setString(2, subDO.getSubOrderNo());
-                    ps.setString(3, subDO.getMerchantId());
-                    ps.setString(4, subDO.getMerchantOrderNo());
-                    ps.setBigDecimal(5, subDO.getRefundSplitAmount());
-                    ps.setObject(6, subDO.getRefundSplitAmountFen());
-                    ps.setObject(7, subDO.getCreateTime());
-                    ps.setObject(8, subDO.getUpdateTime());
+                    ps.setString(2, subDO.getMerchantId());
+                    ps.setBigDecimal(3, subDO.getRefundSplitAmount());
+                    ps.setObject(4, subDO.getRefundSplitAmountFen());
+                    ps.setObject(5, subDO.getCreateTime());
+                    ps.setObject(6, subDO.getUpdateTime());
                 }
 
                 @Override
                 public int getBatchSize() {
-                    return refundSplitSubDOs.size();
+                    return refundDetailDOs.size();
                 }
             });
             return true;
         } catch (Exception e) {
-            log.error("批量保存退款分账子记录失败", e);
+            log.error("批量保存退款事实明细失败", e);
             return false;
         }
     }
@@ -577,29 +661,43 @@ public class JdbcReconRepository implements ReconRepository {
     @Override
     public boolean updateReconRefundStatus(String orderNo, int refundStatus, BigDecimal refundAmount,
             LocalDateTime refundTime) {
+        ReconOrderMainDO orderMainDO = new ReconOrderMainDO();
+        orderMainDO.setOrderNo(orderNo);
+        orderMainDO.setRefundStatus(refundStatus);
+        orderMainDO.setRefundAmount(refundAmount);
+        orderMainDO.setRefundTime(refundTime);
+        return updateReconRefundStatus(orderMainDO);
+    }
+
+    @Override
+    public boolean updateReconRefundStatus(ReconOrderMainDO orderMainDO) {
         try {
             String tableName = properties.getTablePrefix() + "order_main";
             String sql = "UPDATE " + tableName
                     + " SET refund_status = ?, refund_amount = ?, refund_amount_fen = ?, refund_time = ?, update_time = ? WHERE order_no = ?";
-            Long refundAmountFen = refundAmount != null ? refundAmount.multiply(new BigDecimal("100")).longValue()
-                    : null;
-            int rows = jdbcTemplate.update(sql, refundStatus, refundAmount, refundAmountFen, refundTime,
-                    LocalDateTime.now(), orderNo);
+
+            int rows = jdbcTemplate.update(sql,
+                    orderMainDO.getRefundStatus(),
+                    orderMainDO.getRefundAmount(),
+                    orderMainDO.getRefundAmountFen(),
+                    orderMainDO.getRefundTime(),
+                    LocalDateTime.now(),
+                    orderMainDO.getOrderNo());
             return rows > 0;
         } catch (Exception e) {
-            log.error("更新退款对账状态失败，订单号: {}", orderNo, e);
+            log.error("更新退款对账状态失败，订单号: {}", orderMainDO.getOrderNo(), e);
             return false;
         }
     }
 
     @Override
-    public List<ReconOrderRefundSplitSubDO> getOrderRefundSplitSubByOrderNo(String orderNo) {
+    public List<ReconOrderRefundDetailDO> getOrderRefundDetailByOrderNo(String orderNo) {
         try {
-            String tableName = properties.getTablePrefix() + "order_refund_split_sub";
+            String tableName = properties.getTablePrefix() + "order_refund_detail";
             String sql = "SELECT * FROM " + tableName + " WHERE order_no = ?";
-            return jdbcTemplate.query(sql, new OrderRefundSplitSubRowMapper(), orderNo);
+            return jdbcTemplate.query(sql, new OrderRefundDetailRowMapper(), orderNo);
         } catch (Exception e) {
-            log.error("查询退款分账子记录失败，订单号: {}", orderNo, e);
+            log.error("查询退款事实明细失败，订单号: {}", orderNo, e);
             return Collections.emptyList();
         }
     }
@@ -845,34 +943,57 @@ public class JdbcReconRepository implements ReconRepository {
         }
     }
 
-    private static class OrderSplitSubRowMapper implements RowMapper<ReconOrderSplitSubDO> {
+    private static class OrderSubRowMapper implements RowMapper<ReconOrderSubDO> {
         @Override
-        public ReconOrderSplitSubDO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ReconOrderSplitSubDO sub = new ReconOrderSplitSubDO();
+        public ReconOrderSubDO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ReconOrderSubDO sub = new ReconOrderSubDO();
             sub.setId(rs.getLong("id"));
             sub.setOrderNo(rs.getString("order_no"));
             sub.setSubOrderNo(rs.getString("sub_order_no"));
-            sub.setMerchantId(rs.getString("merchant_id"));
             sub.setMerchantOrderNo(rs.getString("merchant_order_no"));
+            sub.setMerchantId(rs.getString("merchant_id"));
+            sub.setOrderAmount(rs.getBigDecimal("order_amount"));
+            sub.setOrderAmountFen(rs.getObject("order_amount_fen", Long.class));
             sub.setSplitAmount(rs.getBigDecimal("split_amount"));
             sub.setSplitAmountFen(rs.getObject("split_amount_fen", Long.class));
-            sub.setNotifyStatus(rs.getInt("notify_status"));
-            sub.setNotifyResult(rs.getString("notify_result"));
+            sub.setFee(rs.getBigDecimal("fee"));
+            sub.setFeeFen(rs.getObject("fee_fen", Long.class));
+            sub.setSplitRatio(rs.getObject("split_ratio", Integer.class));
             sub.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
             sub.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
             return sub;
         }
     }
 
-    private static class OrderRefundSplitSubRowMapper implements RowMapper<ReconOrderRefundSplitSubDO> {
+    private static class OrderSplitDetailRowMapper implements RowMapper<ReconOrderSplitDetailDO> {
         @Override
-        public ReconOrderRefundSplitSubDO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ReconOrderRefundSplitSubDO sub = new ReconOrderRefundSplitSubDO();
+        public ReconOrderSplitDetailDO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ReconOrderSplitDetailDO sub = new ReconOrderSplitDetailDO();
             sub.setId(rs.getLong("id"));
             sub.setOrderNo(rs.getString("order_no"));
-            sub.setSubOrderNo(rs.getString("sub_order_no"));
             sub.setMerchantId(rs.getString("merchant_id"));
-            sub.setMerchantOrderNo(rs.getString("merchant_order_no"));
+            sub.setSplitAmount(rs.getBigDecimal("split_amount"));
+            sub.setSplitAmountFen(rs.getObject("split_amount_fen", Long.class));
+            sub.setArrivalAmount(rs.getBigDecimal("arrival_amount"));
+            sub.setArrivalAmountFen(rs.getObject("arrival_amount_fen", Long.class));
+            sub.setSplitFee(rs.getBigDecimal("split_fee"));
+            sub.setSplitFeeFen(rs.getObject("split_fee_fen", Long.class));
+            sub.setNotifyStatus(rs.getInt("notify_status"));
+            sub.setNotifyResult(rs.getString("notify_result"));
+            sub.setSettlementType(rs.getInt("settlement_type"));
+            sub.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            sub.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return sub;
+        }
+    }
+
+    private static class OrderRefundDetailRowMapper implements RowMapper<ReconOrderRefundDetailDO> {
+        @Override
+        public ReconOrderRefundDetailDO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ReconOrderRefundDetailDO sub = new ReconOrderRefundDetailDO();
+            sub.setId(rs.getLong("id"));
+            sub.setOrderNo(rs.getString("order_no"));
+            sub.setMerchantId(rs.getString("merchant_id"));
             sub.setRefundSplitAmount(rs.getBigDecimal("refund_split_amount"));
             sub.setRefundSplitAmountFen(rs.getObject("refund_split_amount_fen", Long.class));
             sub.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
@@ -926,6 +1047,25 @@ public class JdbcReconRepository implements ReconRepository {
             log.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
             log.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
             return log;
+        }
+    }
+
+    private static class MerchantSettlementRowMapper implements RowMapper<ReconOrderMerchantSettlementDO> {
+        @Override
+        public ReconOrderMerchantSettlementDO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ReconOrderMerchantSettlementDO settle = new ReconOrderMerchantSettlementDO();
+            settle.setId(rs.getLong("id"));
+            settle.setOrderNo(rs.getString("order_no"));
+            settle.setMerchantId(rs.getString("merchant_id"));
+            settle.setSettlementType(
+                    tech.coffers.recon.api.enums.SettlementTypeEnum.fromCode(rs.getInt("settlement_type")));
+            settle.setOrderAmountFen(rs.getLong("order_amount_fen"));
+            settle.setSplitAmountFen(rs.getLong("split_amount_fen"));
+            settle.setSplitFeeFen(rs.getLong("split_fee_fen"));
+            settle.setArrivalAmountFen(rs.getLong("arrival_amount_fen"));
+            settle.setCreateTime(rs.getObject("create_time", LocalDateTime.class));
+            settle.setUpdateTime(rs.getObject("update_time", LocalDateTime.class));
+            return settle;
         }
     }
 }

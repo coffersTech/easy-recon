@@ -148,7 +148,7 @@ public class ReconOrderMainDO {
     public void setPayAmountFen(Long payAmountFen) {
         this.payAmountFen = payAmountFen;
         if (payAmountFen != null) {
-            this.payAmount = new BigDecimal(payAmountFen).divide(new BigDecimal("100"));
+            this.payAmount = BigDecimal.valueOf(payAmountFen).movePointLeft(2);
         } else {
             this.payAmount = null;
         }
@@ -166,7 +166,7 @@ public class ReconOrderMainDO {
     public void setPlatformIncomeFen(Long platformIncomeFen) {
         this.platformIncomeFen = platformIncomeFen;
         if (platformIncomeFen != null) {
-            this.platformIncome = new BigDecimal(platformIncomeFen).divide(new BigDecimal("100"));
+            this.platformIncome = BigDecimal.valueOf(platformIncomeFen).movePointLeft(2);
         } else {
             this.platformIncome = null;
         }
@@ -184,7 +184,7 @@ public class ReconOrderMainDO {
     public void setPayFeeFen(Long payFeeFen) {
         this.payFeeFen = payFeeFen;
         if (payFeeFen != null) {
-            this.payFee = new BigDecimal(payFeeFen).divide(new BigDecimal("100"));
+            this.payFee = BigDecimal.valueOf(payFeeFen).movePointLeft(2);
         } else {
             this.payFee = null;
         }
@@ -200,7 +200,7 @@ public class ReconOrderMainDO {
     public void setSplitTotalAmountFen(Long splitTotalAmountFen) {
         this.splitTotalAmountFen = splitTotalAmountFen;
         if (splitTotalAmountFen != null) {
-            this.splitTotalAmount = new BigDecimal(splitTotalAmountFen).divide(new BigDecimal("100"));
+            this.splitTotalAmount = BigDecimal.valueOf(splitTotalAmountFen).movePointLeft(2);
         }
     }
 
@@ -214,7 +214,7 @@ public class ReconOrderMainDO {
     public void setRefundAmountFen(Long refundAmountFen) {
         this.refundAmountFen = refundAmountFen;
         if (refundAmountFen != null) {
-            this.refundAmount = new BigDecimal(refundAmountFen).divide(new BigDecimal("100"));
+            this.refundAmount = BigDecimal.valueOf(refundAmountFen).movePointLeft(2);
         }
     }
 

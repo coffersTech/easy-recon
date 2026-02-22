@@ -202,10 +202,9 @@ public class ReconSdkAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(RealtimeReconService.class)
     public RealtimeReconService realtimeReconService(ReconRepository reconRepository,
-            ExceptionRecordService exceptionRecordService, AlarmService alarmService, ReconSdkProperties properties,
+            ExceptionRecordService exceptionRecordService, AlarmService alarmService,
             @org.springframework.beans.factory.annotation.Qualifier("reconExecutorService") ExecutorService executorService) {
-        return new RealtimeReconService(reconRepository, exceptionRecordService, alarmService, properties,
-                executorService);
+        return new RealtimeReconService(reconRepository, exceptionRecordService, alarmService, executorService);
     }
 
     /**

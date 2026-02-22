@@ -26,8 +26,8 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
                 + "pay_fee = VALUES(pay_fee), pay_fee_fen = VALUES(pay_fee_fen), "
                 + "split_total_amount = VALUES(split_total_amount), split_total_amount_fen = VALUES(split_total_amount_fen), "
                 + "pay_status = VALUES(pay_status), split_status = VALUES(split_status), "
-                + "notify_status = VALUES(notify_status), notify_result = VALUES(notify_result), "
-                + "recon_status = VALUES(recon_status), update_time = VALUES(update_time)";
+                + "notify_status = VALUES(notify_status), "
+                + "notify_result = VALUES(notify_result), recon_status = VALUES(recon_status), update_time = VALUES(update_time)";
     }
 
     /**
@@ -36,12 +36,14 @@ public class MySqlReconDialect implements ReconDatabaseDialect {
     @Override
     public String getInsertOrderSplitSubSql(String tableName) {
         return "INSERT INTO " + tableName
-                + " (order_no, sub_order_no, merchant_id, merchant_order_no, split_amount, split_amount_fen, notify_status, notify_result, create_time, update_time) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                + " (order_no, sub_order_no, merchant_id, merchant_order_no, split_amount, split_amount_fen, arrival_amount, arrival_amount_fen, split_fee, split_fee_fen, notify_status, notify_result, create_time, update_time) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE "
                 + "sub_order_no = VALUES(sub_order_no), "
                 + "merchant_order_no = VALUES(merchant_order_no), "
                 + "split_amount = VALUES(split_amount), split_amount_fen = VALUES(split_amount_fen), "
+                + "arrival_amount = VALUES(arrival_amount), arrival_amount_fen = VALUES(arrival_amount_fen), "
+                + "split_fee = VALUES(split_fee), split_fee_fen = VALUES(split_fee_fen), "
                 + "notify_status = VALUES(notify_status), notify_result = VALUES(notify_result), "
                 + "update_time = VALUES(update_time)";
     }

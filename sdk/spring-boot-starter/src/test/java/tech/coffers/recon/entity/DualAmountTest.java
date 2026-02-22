@@ -18,7 +18,7 @@ public class DualAmountTest {
 
         // Test Fen -> Yuan
         mainDO.setPlatformIncomeFen(500L);
-        assertEquals(new BigDecimal("5"), mainDO.getPlatformIncome()); // 500/100 = 5
+        assertEquals(new BigDecimal("5.00"), mainDO.getPlatformIncome()); // 500/100 = 5.00
 
         // Test Null
         mainDO.setPayFee(null);
@@ -29,15 +29,32 @@ public class DualAmountTest {
     }
 
     @Test
-    public void testReconOrderSplitSubDO() {
-        ReconOrderSplitSubDO subDO = new ReconOrderSplitSubDO();
+    public void testReconOrderSplitDetailDO() {
+        ReconOrderSplitDetailDO detailDO = new ReconOrderSplitDetailDO();
 
         // Yuan -> Fen
-        subDO.setSplitAmount(new BigDecimal("12.34"));
-        assertEquals(1234L, subDO.getSplitAmountFen());
+        detailDO.setSplitAmount(new BigDecimal("12.34"));
+        assertEquals(1234L, detailDO.getSplitAmountFen());
 
         // Fen -> Yuan
-        subDO.setSplitAmountFen(5678L);
-        assertEquals(new BigDecimal("56.78"), subDO.getSplitAmount());
+        detailDO.setSplitAmountFen(5678L);
+        assertEquals(new BigDecimal("56.78"), detailDO.getSplitAmount());
+    }
+
+    @Test
+    public void testReconOrderSubDO() {
+        ReconOrderSubDO subDO = new ReconOrderSubDO();
+
+        // orderAmount Yuan -> Fen
+        subDO.setOrderAmount(new BigDecimal("100.00"));
+        assertEquals(10000L, subDO.getOrderAmountFen());
+
+        // splitAmount Fen -> Yuan
+        subDO.setSplitAmountFen(9000L);
+        assertEquals(new BigDecimal("90.00"), subDO.getSplitAmount());
+
+        // fee Yuan -> Fen
+        subDO.setFee(new BigDecimal("1.50"));
+        assertEquals(150L, subDO.getFeeFen());
     }
 }

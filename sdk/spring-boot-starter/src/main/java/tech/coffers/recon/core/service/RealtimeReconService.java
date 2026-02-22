@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import org.springframework.transaction.annotation.Transactional;
@@ -352,7 +351,7 @@ public class RealtimeReconService {
                             detail.setCreateTime(LocalDateTime.now());
                             detail.setUpdateTime(LocalDateTime.now());
                             return detail;
-                        }).collect(java.util.stream.Collectors.toList());
+                        }).collect(Collectors.toList());
                 reconRepository.batchSaveOrderRefundDetail(refundDetailDOs);
             }
 
@@ -487,7 +486,6 @@ public class RealtimeReconService {
             }
 
             List<ReconOrderSplitDetailDO> splitDetailDOs = reconRepository.getOrderSplitDetailByOrderNo(orderNo);
-            List<tech.coffers.recon.entity.ReconOrderSubDO> subDOs = reconRepository.getOrderSubByOrderNo(orderNo);
 
             // 重新推断当前事实对应的到账方式进行校验
 
@@ -728,47 +726,6 @@ public class RealtimeReconService {
         return results;
     }
 
-    private SettlementTypeEnum inferSettlementTypeFromFacts(ReconOrderMainDO main,
-            List<ReconOrderSplitDetailDO> facts, List<tech.coffers.recon.entity.ReconOrderSubDO> subDOs) {
-
-        if (main != null && main.getPlatformIncomeFen() != null && main.getPlatformIncomeFen() > 0) {
-            // 如果主单平台收入大于 0，通常认为是实时分账场景
-            return SettlementTypeEnum.REALTIME_SPLIT;
-        }
-
-        if (facts == null || facts.isEmpty()) {
-            // 如果事实明细为空且没有主单收入，默认为平台代收
-            return SettlementTypeEnum.PLATFORM_COLLECTION;
-        }
-
-        Set<String> factMerchants = facts.stream()
-                .map(ReconOrderSplitDetailDO::getMerchantId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        // 1. 多个商户 -> 实时分账
-        if (factMerchants.size() > 1) {
-            return SettlementTypeEnum.REALTIME_SPLIT;
-        }
-
-        // 2. 单商户 -> 若收款方不是原订单商户，则为空中分账（平台代收在上面处理了）
-        // 这里需要更精确的逻辑判断，通常单商户如果有 arrivalAmount 且不是原商户，也是一种分账
-        if (subDOs != null && !subDOs.isEmpty()) {
-            String singleIntentMchId = subDOs.get(0).getMerchantId();
-            if (!factMerchants.contains(singleIntentMchId)) {
-                return SettlementTypeEnum.REALTIME_SPLIT;
-            }
-        }
-
-        // Default to REALTIME_SPLIT if platform income exists or multiple fact
-        // merchants
-        if (main != null && main.getPlatformIncomeFen() != null && main.getPlatformIncomeFen() > 0) {
-            return SettlementTypeEnum.REALTIME_SPLIT;
-        }
-
-        return (factMerchants.size() > 1) ? SettlementTypeEnum.REALTIME_SPLIT : SettlementTypeEnum.PLATFORM_COLLECTION;
-    }
-
     /**
      * 提取 DTO 中的金额并归一化为分 (Long)
      */
@@ -940,7 +897,6 @@ public class RealtimeReconService {
         if (!verifyMacroMatch(payAmountFen, platformIncomeFen, payFeeFen, splitDetailDOs)) {
             String msg = String.format("宏观金额校验不符。支付(%d) != [商户汇总 + 平台留存(%d) + 手续费(%d)]。请确认分账明细中是否包含总额中转账号。",
                     payAmtFen, platIncFen, pFeeFen);
-            System.out.println("DEBUG RECON: " + msg);
             return msg;
         }
 
